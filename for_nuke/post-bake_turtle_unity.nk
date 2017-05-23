@@ -1,0 +1,84 @@
+#! C:/Program Files/Nuke8.0v5/nuke-8.0.v5.dll -nx
+version 8.0 v5
+define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
+<layout version="1.0">
+    <window x="0" y="0" w="2576" h="1080" screen="1">
+        <splitter orientation="1">
+            <split size="2015"/>
+            <splitter orientation="1">
+                <split size="40"/>
+                <dock id="" hideTitles="1" activePageId="Toolbar.1">
+                    <page id="Toolbar.1"/>
+                </dock>
+                <split size="1971"/>
+                <splitter orientation="2">
+                    <split size="596"/>
+                    <dock id="" activePageId="Viewer.1">
+                        <page id="Viewer.1"/>
+                    </dock>
+                    <split size="418"/>
+                    <dock id="" activePageId="DAG.1">
+                        <page id="DAG.1"/>
+                        <page id="Curve Editor.1"/>
+                        <page id="DopeSheet.1"/>
+                    </dock>
+                </splitter>
+            </splitter>
+            <split size="541"/>
+            <dock id="" activePageId="Properties.1">
+                <page id="Properties.1"/>
+            </dock>
+        </splitter>
+    </window>
+</layout>
+}
+Root {
+ inputs 0
+ name E:/5-Internet/Dropbox/0-Settings/Python/for_nuke/post-bake_turtle_unity.nk
+ format "2048 1556 0 0 2048 1556 1 2K_Super_35(full-ap)"
+ proxy_type scale
+ proxy_format "1024 778 0 0 1024 778 1 1K_Super_35(full-ap)"
+}
+Read {
+ inputs 0
+ file y:/Farm/Bake/LightMaps/drl_tmp_turtle/baked_tpIllumination.0.exr
+ format "512 512 0 0 512 512 1 square_512"
+ origset true
+ name Read_in
+ xpos -40
+ ypos -112
+}
+Unity_avk_LM_DeColorize {
+ name Unity_avk_LM_DeColorize1
+ xpos -40
+ ypos -10
+}
+Dot {
+ name Dot1
+ xpos -6
+ ypos 42
+}
+set N1fbbb400 [stack 0]
+Write {
+ file E:/1-Projects/5-ShaderFX/sources/Trash/Trash.exr
+ file_type exr
+ name Write_out_EXR
+ xpos 70
+ ypos 80
+}
+push $N1fbbb400
+Write {
+ file E:/1-Projects/5-ShaderFX/sources/Trash/Trash.png
+ file_type png
+ checkHashOnRead false
+ name Write_out
+ xpos -40
+ ypos 80
+}
+Viewer {
+ frame 1
+ input_process false
+ name Viewer1
+ xpos 70
+ ypos -10
+}

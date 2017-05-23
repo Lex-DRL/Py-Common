@@ -1,0 +1,55 @@
+#! C:/1-CG/Nuke8.0v3/nuke-8.0.v3.dll -nx
+version 8.0 v3
+define_window_layout_xml {<?xml version="1.0" encoding="UTF-8"?>
+<layout version="1.0">
+    <window x="0" y="0" w="2560" h="1400" screen="0">
+        <splitter orientation="1">
+            <split size="2002"/>
+            <splitter orientation="1">
+                <split size="40"/>
+                <dock id="" hideTitles="1" activePageId="Toolbar.1">
+                    <page id="Toolbar.1"/>
+                </dock>
+                <split size="1958"/>
+                <splitter orientation="2">
+                    <split size="784"/>
+                    <dock id="" activePageId="Viewer.1">
+                        <page id="Viewer.1"/>
+                    </dock>
+                    <split size="550"/>
+                    <dock id="" activePageId="DAG.1">
+                        <page id="DAG.1"/>
+                        <page id="Curve Editor.1"/>
+                        <page id="DopeSheet.1"/>
+                    </dock>
+                </splitter>
+            </splitter>
+            <split size="538"/>
+            <dock id="" activePageId="Properties.1">
+                <page id="Properties.1"/>
+            </dock>
+        </splitter>
+    </window>
+</layout>
+}
+Root {
+ inputs 0
+ name E:/1-Projects/Maya/ssTrapsSrc/FX/_Compose.nk
+ project_directory "\[file dirname \[value root.name]]"
+ last_frame 1
+ lock_range true
+ fps 30
+ format "1024 1024 0 0 1024 1024 1 square_1K"
+ proxy_type scale
+ proxy_format "1024 778 0 0 1024 778 1 1K_Super_35(full-ap)"
+}
+Viewer {
+ inputs 0
+ frame 1
+ input_process false
+ translate {-0.2269999981 0.02800000086}
+ name Viewer1
+ note_font Verdana
+ xpos 1060
+ ypos 1815
+}
