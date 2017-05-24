@@ -177,13 +177,13 @@ class NukeProcessor(object):
 
 	def __set_py_dir(self, path):
 		self.__py_dir = NukeProcessor.__get_dir_value(
-			path, envs.PY_DIR, defaults.py_dir, NukeProcessor.__to_unix, errors.py_dir
+			path, envs.PY_DIR, defaults.py_dir, NukeProcessor.__to_windows, errors.py_dir
 		)
 
 	def __set_py_file(self, file_name):
 		self.__py_file = NukeProcessor.__get_file_value(
 			self.__py_dir, file_name, None, defaults.py_file,
-			NukeProcessor.__to_unix, errors.py_file
+			NukeProcessor.__to_windows, errors.py_file
 		)
 	
 # endregion
@@ -256,7 +256,7 @@ class NukeProcessor(object):
 		)
 
 	def py_file_path(self):
-		return NukeProcessor.__to_unix(
+		return NukeProcessor.__to_windows(
 			self.__py_dir + '/' + self.__py_file,
 			as_file=True
 		)
