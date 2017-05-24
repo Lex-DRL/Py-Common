@@ -22,17 +22,17 @@ class NukeProcessor(object):
 	):
 		super(NukeProcessor, self).__init__()
 
-		self._src_tex = tuple()
-		self._out_tex = tuple()
-		self._explicit_to_exr = bool(explicit_to_exr)
+		self.__src_tex = tuple()
+		self.__out_tex = tuple()
+		self.__explicit_to_exr = bool(explicit_to_exr)
 
-		self._nuke_dir = ''
-		self._nuke_exe = ''
+		self.__nuke_dir = ''
+		self.__nuke_exe = ''
 		
-		self._nk_dir = ''
-		self._nk_file = ''
-		self._py_dir = ''
-		self._py_file = ''
+		self.__nk_dir = ''
+		self.__nk_file = ''
+		self.__py_dir = ''
+		self.__py_file = ''
 
 		self.__set_src_tex(src_tex)
 		self.__set_out_tex(out_tex)
@@ -154,35 +154,35 @@ class NukeProcessor(object):
 
 
 	def __set_nuke_dir(self, path):
-		self._nuke_dir = NukeProcessor.__get_dir_value(
+		self.__nuke_dir = NukeProcessor.__get_dir_value(
 			path, envs.NUKE_DIR, defaults.nuke_dir, NukeProcessor.__to_windows, errors.nuke_dir
 		)
 
 	def __set_nuke_file(self, file_name):
-		self._nuke_exe = NukeProcessor.__get_file_value(
-			self._nuke_dir, file_name, envs.NUKE_EXE, defaults.nuke_exe,
+		self.__nuke_exe = NukeProcessor.__get_file_value(
+			self.__nuke_dir, file_name, envs.NUKE_EXE, defaults.nuke_exe,
 			NukeProcessor.__to_windows, errors.nuke_exe
 		)
 	
 	def __set_nk_dir(self, path):
-		self._nk_dir = NukeProcessor.__get_dir_value(
+		self.__nk_dir = NukeProcessor.__get_dir_value(
 			path, envs.NK_DIR, defaults.nk_dir, NukeProcessor.__to_unix, errors.nk_dir
 		)
 
 	def __set_nk_file(self, file_name):
-		self._nk_file = NukeProcessor.__get_file_value(
-			self._nk_dir, file_name, None, defaults.nk_file,
+		self.__nk_file = NukeProcessor.__get_file_value(
+			self.__nk_dir, file_name, None, defaults.nk_file,
 			NukeProcessor.__to_unix, errors.nk_file
 		)
 
 	def __set_py_dir(self, path):
-		self._py_dir = NukeProcessor.__get_dir_value(
+		self.__py_dir = NukeProcessor.__get_dir_value(
 			path, envs.PY_DIR, defaults.py_dir, NukeProcessor.__to_unix, errors.py_dir
 		)
 
 	def __set_py_file(self, file_name):
-		self._py_file = NukeProcessor.__get_file_value(
-			self._py_dir, file_name, None, defaults.py_file,
+		self.__py_file = NukeProcessor.__get_file_value(
+			self.__py_dir, file_name, None, defaults.py_file,
 			NukeProcessor.__to_unix, errors.py_file
 		)
 	
@@ -193,7 +193,7 @@ class NukeProcessor(object):
 	
 	@property
 	def nuke_dir(self):
-		return self._nuke_dir
+		return self.__nuke_dir
 
 	@nuke_dir.setter
 	def nuke_dir(self, value):
@@ -201,7 +201,7 @@ class NukeProcessor(object):
 
 	@property
 	def nuke_exe(self):
-		return self._nuke_exe
+		return self.__nuke_exe
 
 	@nuke_exe.setter
 	def nuke_exe(self, value):
@@ -209,7 +209,7 @@ class NukeProcessor(object):
 
 	@property
 	def nk_dir(self):
-		return self._nk_dir
+		return self.__nk_dir
 
 	@nk_dir.setter
 	def nk_dir(self, value):
@@ -217,7 +217,7 @@ class NukeProcessor(object):
 
 	@property
 	def nk_file(self):
-		return self._nk_file
+		return self.__nk_file
 
 	@nk_file.setter
 	def nk_file(self, value):
@@ -225,7 +225,7 @@ class NukeProcessor(object):
 
 	@property
 	def py_dir(self):
-		return self._py_dir
+		return self.__py_dir
 
 	@py_dir.setter
 	def py_dir(self, value):
@@ -233,7 +233,7 @@ class NukeProcessor(object):
 
 	@property
 	def py_file(self):
-		return self._py_file
+		return self.__py_file
 
 	@py_file.setter
 	def py_file(self, value):
@@ -245,19 +245,19 @@ class NukeProcessor(object):
 
 	def nuke_exe_path(self):
 		return NukeProcessor.__to_windows(
-			self._nuke_dir + '/' + self._nuke_exe,
+			self.__nuke_dir + '/' + self.__nuke_exe,
 			as_file=True
 		)
 
 	def nk_file_path(self):
 		return NukeProcessor.__to_unix(
-			self._nk_dir + '/' + self._nk_file,
+			self.__nk_dir + '/' + self.__nk_file,
 			as_file=True
 		)
 
 	def py_file_path(self):
 		return NukeProcessor.__to_unix(
-			self._py_dir + '/' + self._py_file,
+			self.__py_dir + '/' + self.__py_file,
 			as_file=True
 		)
 
@@ -306,7 +306,7 @@ class NukeProcessor(object):
 
 	def __set_src_tex(self, src_tex):
 		"""
-		Ensures self._src_tex is tuple of file paths, each exists and is readable.
+		Ensures self.__src_tex is tuple of file paths, each exists and is readable.
 
 		:param src_tex:
 			<string or list/tuple of strings>
@@ -320,13 +320,13 @@ class NukeProcessor(object):
 			).raise_if_needed_or_empty().replace('\\', '/')
 			return _fs.error_if.path_not_readable(item)
 
-		self._src_tex = tuple(
+		self.__src_tex = tuple(
 			(check_single_item(it) for it in src_tex)
 		)
 
 	def __set_out_tex(self, out_tex):
 		"""
-		Ensures self._out_tex is tuple of file paths, with breadcrumbs as existing folders.
+		Ensures self.__out_tex is tuple of file paths, with breadcrumbs as existing folders.
 
 		:param out_tex:
 			<string or list/tuple of strings>
@@ -342,7 +342,7 @@ class NukeProcessor(object):
 			).raise_if_needed_or_empty().replace('\\', '/')
 			return _fs.ensure_breadcrumbs_are_folders(item, 2)
 
-		self._out_tex = tuple(
+		self.__out_tex = tuple(
 			(check_single_item(it) for it in out_tex)
 		)
 		
@@ -360,7 +360,7 @@ class NukeProcessor(object):
 				* <string> - one texture
 				* <tuple of strings> - multiple textures
 		"""
-		return self.__get_tex_prop_val(self._src_tex)
+		return self.__get_tex_prop_val(self.__src_tex)
 
 	@src_tex.setter
 	def src_tex(self, value):
@@ -376,7 +376,7 @@ class NukeProcessor(object):
 				* <string> - one texture
 				* <tuple of strings> - multiple textures
 		"""
-		return self.__get_tex_prop_val(self._out_tex)
+		return self.__get_tex_prop_val(self.__out_tex)
 
 	@out_tex.setter
 	def out_tex(self, value):
@@ -403,8 +403,8 @@ class NukeProcessor(object):
 				* <str> If no or single out-file provided.
 				* <tuple of str> for multiple outputs.
 		"""
-		out = self._out_tex
-		src = self._src_tex
+		out = self.__out_tex
+		src = self.__src_tex
 		assert isinstance(out, tuple)
 		assert isinstance(src, tuple)
 		len_src = len(src)
@@ -469,7 +469,7 @@ class NukeProcessor(object):
 		get_src = _get_src_getter()
 		assert callable(get_src)
 
-		gen_ext = '.exr' if self._explicit_to_exr else '.png'
+		gen_ext = '.exr' if self.__explicit_to_exr else '.png'
 
 		def gen_from_src(idx, planned_files=None):
 			"""
@@ -549,8 +549,8 @@ class NukeProcessor(object):
 				* True - EXR
 				* False - PNG
 		"""
-		return self._explicit_to_exr
+		return self.__explicit_to_exr
 
 	@explicit_to_exr.setter
 	def explicit_to_exr(self, value):
-		self._explicit_to_exr = bool(value)
+		self.__explicit_to_exr = bool(value)
