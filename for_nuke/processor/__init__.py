@@ -10,9 +10,6 @@ from . import defaults, envs, errors
 
 _str_types = (str, unicode)
 
-err_nk_dir = errors.NoPathError('nk-script directory')
-err_nk_file = errors.NoPathError('nk-script', is_file=True)
-
 
 class NukeProcessor(object):
 	def __init__(
@@ -21,7 +18,7 @@ class NukeProcessor(object):
 		nk_dir='', nk_file='',
 		py_dir='', py_file='',
 		nuke_dir='', nuke_exe='',
-		home_override_env='DRL_NUKE_HOME'
+		home_override_env=envs.NUKE_HOME_OVERRIDE
 	):
 		super(NukeProcessor, self).__init__()
 
@@ -29,22 +26,27 @@ class NukeProcessor(object):
 		self._out_tex = tuple()
 		self._explicit_to_exr = bool(explicit_to_exr)
 
+		self._nuke_dir = ''
+		self._nuke_exe = ''
+		
 		self._nk_dir = ''
 		self._nk_file = ''
 		self._py_dir = ''
 		self._py_file = ''
-		self._nuke_dir = ''
-		self._nuke_file = ''
-
 
 		self.__set_src_tex(src_tex)
 		self.__set_out_tex(out_tex)
 
-		# TODO
+		self.__set_nuke_dir(nuke_dir)
+		self.__set_nuke_file(nuke_exe)
 		self.__set_nk_dir(nk_dir)
 		self.__set_nk_file(nk_file)
+		self.__set_py_dir(py_dir)
+		self.__set_py_file(py_file)
 
 
+# region Low-level Dir-File property setters
+	
 	@staticmethod
 	def __get_default_value(env_nm=None, def_val=None):
 		if not(env_nm and isinstance(env_nm, _str_types)):
@@ -151,34 +153,119 @@ class NukeProcessor(object):
 		return file_nm
 
 
-	def __set_nk_dir(self, nk_dir):
-		self._nk_dir = NukeProcessor.__get_dir_value(
-			nk_dir, envs.NK_DIR, defaults.nk_dir, NukeProcessor.__to_windows, err_nk_dir
+	def __set_nuke_dir(self, path):
+		self._nuke_dir = NukeProcessor.__get_dir_value(
+			path, envs.NUKE_DIR, defaults.nuke_dir, NukeProcessor.__to_windows, errors.nuke_dir
 		)
 
-	def __set_nk_file(self, nk_file):
-		self._nk_file = NukeProcessor.__get_file_value(
-			self._nk_dir, nk_file, None, defaults.nk_file,
-			NukeProcessor.__to_windows, err_nk_file
+	def __set_nuke_file(self, file_name):
+		self._nuke_exe = NukeProcessor.__get_file_value(
+			self._nuke_dir, file_name, envs.NUKE_EXE, defaults.nuke_exe,
+			NukeProcessor.__to_windows, errors.nuke_exe
 		)
+	
+	def __set_nk_dir(self, path):
+		self._nk_dir = NukeProcessor.__get_dir_value(
+			path, envs.NK_DIR, defaults.nk_dir, NukeProcessor.__to_unix, errors.nk_dir
+		)
+
+	def __set_nk_file(self, file_name):
+		self._nk_file = NukeProcessor.__get_file_value(
+			self._nk_dir, file_name, None, defaults.nk_file,
+			NukeProcessor.__to_unix, errors.nk_file
+		)
+
+	def __set_py_dir(self, path):
+		self._py_dir = NukeProcessor.__get_dir_value(
+			path, envs.PY_DIR, defaults.py_dir, NukeProcessor.__to_unix, errors.py_dir
+		)
+
+	def __set_py_file(self, file_name):
+		self._py_file = NukeProcessor.__get_file_value(
+			self._py_dir, file_name, None, defaults.py_file,
+			NukeProcessor.__to_unix, errors.py_file
+		)
+	
+# endregion
+
+
+# region Dir-File properties
+	
+	@property
+	def nuke_dir(self):
+		return self._nuke_dir
+
+	@nuke_dir.setter
+	def nuke_dir(self, value):
+		self.__set_nuke_dir(value)
 
 	@property
-	def explicit_to_exr(self):
-		"""
-		When output texture isn't specified explicitly, this property defines
-		whether extension of the resulting file will be EXR or PNG.
+	def nuke_exe(self):
+		return self._nuke_exe
 
-		:return:
-			<bool>
-				* True - EXR
-				* False - PNG
-		"""
-		return self._explicit_to_exr
+	@nuke_exe.setter
+	def nuke_exe(self, value):
+		self.__set_nuke_file(value)
 
-	@explicit_to_exr.setter
-	def explicit_to_exr(self, value):
-		self._explicit_to_exr = bool(value)
+	@property
+	def nk_dir(self):
+		return self._nk_dir
 
+	@nk_dir.setter
+	def nk_dir(self, value):
+		self.__set_nk_dir(value)
+
+	@property
+	def nk_file(self):
+		return self._nk_file
+
+	@nk_file.setter
+	def nk_file(self, value):
+		self.__set_nk_file(value)
+
+	@property
+	def py_dir(self):
+		return self._py_dir
+
+	@py_dir.setter
+	def py_dir(self, value):
+		self.__set_py_dir(value)
+
+	@property
+	def py_file(self):
+		return self._py_file
+
+	@py_file.setter
+	def py_file(self, value):
+		self.__set_py_file(value)
+
+# endregion
+
+# region Full path getters
+
+	def nuke_exe_path(self):
+		return NukeProcessor.__to_windows(
+			self._nuke_dir + '/' + self._nuke_exe,
+			as_file=True
+		)
+
+	def nk_file_path(self):
+		return NukeProcessor.__to_unix(
+			self._nk_dir + '/' + self._nk_file,
+			as_file=True
+		)
+
+	def py_file_path(self):
+		return NukeProcessor.__to_unix(
+			self._py_dir + '/' + self._py_file,
+			as_file=True
+		)
+
+# endregion
+
+
+# region Low-level Texture property setters-getters
+	
 	@staticmethod
 	def __cleanup_tex_arg(tex_arg, tex_name):
 		"""
@@ -237,22 +324,6 @@ class NukeProcessor(object):
 			(check_single_item(it) for it in src_tex)
 		)
 
-	@property
-	def src_tex(self):
-		"""
-		:return:
-			specified source texture(s):
-				* None - no textures specified
-				* <string> - one texture
-				* <tuple of strings> - multiple textures
-		"""
-		return self.__get_tex_prop_val(self._src_tex)
-
-	@src_tex.setter
-	def src_tex(self, value):
-		self.__set_src_tex(value)
-
-
 	def __set_out_tex(self, out_tex):
 		"""
 		Ensures self._out_tex is tuple of file paths, with breadcrumbs as existing folders.
@@ -274,6 +345,27 @@ class NukeProcessor(object):
 		self._out_tex = tuple(
 			(check_single_item(it) for it in out_tex)
 		)
+		
+# endregion
+
+
+# region Texture Properties
+
+	@property
+	def src_tex(self):
+		"""
+		:return:
+			specified source texture(s):
+				* None - no textures specified
+				* <string> - one texture
+				* <tuple of strings> - multiple textures
+		"""
+		return self.__get_tex_prop_val(self._src_tex)
+
+	@src_tex.setter
+	def src_tex(self, value):
+		self.__set_src_tex(value)
+
 
 	@property
 	def out_tex(self):
@@ -289,7 +381,7 @@ class NukeProcessor(object):
 	@out_tex.setter
 	def out_tex(self, value):
 		self.__set_out_tex(value)
-
+	
 	def get_out_tex(self):
 		"""
 		Generate the file path(s), ready to be passed to the nuke script as an argument.
@@ -443,3 +535,22 @@ class NukeProcessor(object):
 		return tuple(
 			(process_single(i, it) for i, it in enumerate(out))
 		)
+
+# endregion
+	
+	@property
+	def explicit_to_exr(self):
+		"""
+		When output texture isn't specified explicitly, this property defines
+		whether extension of the resulting file will be EXR or PNG.
+
+		:return:
+			<bool>
+				* True - EXR
+				* False - PNG
+		"""
+		return self._explicit_to_exr
+
+	@explicit_to_exr.setter
+	def explicit_to_exr(self, value):
+		self._explicit_to_exr = bool(value)

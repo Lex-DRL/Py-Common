@@ -31,3 +31,13 @@ class NoPathError(ValueError):
 		if is_file:
 			return 'file'
 		return 'folder'
+
+
+nuke_dir = NoPathError('NUKE directory')
+nuke_exe = NoPathError('NUKE .exe', is_file=True)
+
+nk_dir = NoPathError('nk-script directory')
+nk_file = NoPathError('nk-script', is_file=True)
+
+py_dir = NoPathError('python script directory')
+py_file = NoPathError('python script', is_file=True)
