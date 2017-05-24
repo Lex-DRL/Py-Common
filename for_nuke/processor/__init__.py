@@ -1,15 +1,19 @@
 __author__ = 'DRL'
 
+from os import path as _os_path
+
 from drl_common import errors as _err_comm
 from drl_common import filesystem as _fs
 
 from . import errors
 
+_str_types = (str, unicode)
+
 
 class NukeProcessor(object):
 	def __init__(
 		self,
-		src_tex, out_tex, explicit_to_exr=True
+		src_tex, out_tex=None, explicit_to_exr=True
 	):
 		super(NukeProcessor, self).__init__()
 
@@ -48,7 +52,7 @@ class NukeProcessor(object):
 		"""
 		if tex_arg is None:
 			tex_arg = list()
-		elif isinstance(tex_arg, (str, unicode)):
+		elif isinstance(tex_arg, _str_types):
 			tex_arg = [tex_arg]
 		elif isinstance(tex_arg, set):
 			tex_arg = list(sorted(tex_arg))
@@ -122,6 +126,8 @@ class NukeProcessor(object):
 		out_tex = self.__cleanup_tex_arg(out_tex, 'out texture')
 
 		def check_single_item(item):
+			if not item:
+				return None
 			item = _err_comm.NotStringError(
 				item, 'out texture'
 			).raise_if_needed_or_empty().replace('\\', '/')
@@ -148,12 +154,31 @@ class NukeProcessor(object):
 
 	def get_out_tex(self):
 		"""
-		If present, the specified out_tex is returned.
-		Otherwise, the resulting tex name(s) are generated from source texture(s).
+		Generate the file path(s), ready to be passed to the nuke script as an argument.
+
+		* If no **out_tex** specified, a single filename generated from source file.
+		* If single out tex specified, it's returned as string.
+		* If multiple output textures given, they're returned as a tuple.
+		*
+			In multi-output case, if any out item is **None** or **empty string**,
+			the corresponding out-tex is generated from source tex.
+
+		When file names are generated, they're guaranteed to be unique
+		(file with this name don't exist yet). '_' prefix is added if necessary.
+
+		When file names specified explicitly, it's your responsibility to check them.
+
 		:return:
+			The full path for the output texture.
+				* <str> If no or single out-file provided.
+				* <tuple of str> for multiple outputs.
 		"""
-		out_tex = self.out_tex
-		src = self._src_tex  # raw
+		out = self._out_tex
+		src = self._src_tex
+		assert isinstance(out, tuple)
+		assert isinstance(src, tuple)
+		len_src = len(src)
+		len_out = len(out)
 
 		def _get_src_getter():
 			"""
@@ -180,16 +205,11 @@ class NukeProcessor(object):
 			src_0 = src[0]
 			first_src_f = lambda dummy_id: src_0
 
-			if not(
-				out_tex and
-				isinstance(out_tex, tuple) and
-				len(out_tex) > 1
-			):
-				# We have either None, empty string
-				# or tuple with less than 2 items (single or empty).
+			if len_out < 2:
+				# We have single or no outputs.
 				# Anyway, we need to always use 1st source input.
 				if not(
-					src_0 and isinstance(src_0, (str, unicode))
+					src_0 and isinstance(src_0, _str_types)
 				):
 					# ... but the actual 1st source is not provided.
 					return _raiser
@@ -197,7 +217,6 @@ class NukeProcessor(object):
 
 			# Now we're sure there are multiple outputs...
 
-			len_src = len(src)
 			if len_src == 1:  # we already took care of empty src ( == 0)
 				# ... but only single input.
 				return first_src_f
@@ -207,11 +226,82 @@ class NukeProcessor(object):
 			max_src_id = len_src - 1
 
 			def _get_matching_src(src_id):
+				src_err = errors.NoPathError('source texture %s' % src_id)
 				if src_id > max_src_id:
-					raise errors.NoPathError('source texture %s' % src_id)
-				return src[src_id]
+					raise src_err
+				res_src = src[src_id]
+				if not (isinstance(res_src, _str_types) and res_src):
+					raise src_err
+				return res_src
 
 			return _get_matching_src
 
 		get_src = _get_src_getter()
 		assert callable(get_src)
+
+		gen_ext = '.exr' if self._explicit_to_exr else '.png'
+
+		def gen_from_src(idx, planned_files=None):
+			"""
+			Generate the actual output file from source, that doesn't exist on disk.
+
+			:param idx: id of source file
+			:param planned_files:
+				<set, optional>
+				If specified, the function adds '_' to the base filename
+				until it finds the filename that's not taken yet.
+			:return: <string>
+			"""
+			if not planned_files:
+				planned_files = set()
+			planned_files = set(x.lower().replace('\\', '/') for x in planned_files)
+
+			cur_src = get_src(idx)
+			assert isinstance(cur_src, _str_types)
+			cur_lower = cur_src.lower()
+			planned_files.add(cur_lower)
+
+			base, ext = _os_path.splitext(cur_src)
+			ext = gen_ext.lower()
+
+			def _base_needs_to_be_extended(src_base, src_ext):
+				"""
+				Whether the filename is already taken, so it needs to be extended once again.
+				"""
+				combined = (src_base + src_ext).lower().replace('\\', '/')
+				if combined in planned_files:
+					return True
+				if _os_path.exists(combined):
+					return True
+				return False
+
+			while _base_needs_to_be_extended(base, ext):
+				base += '_'
+
+			return base + ext
+
+		def to_full_path(short_path):
+			return _os_path.abspath(short_path).replace('\\', '/')
+
+
+		if not out:
+			# no output given - return source:
+			return to_full_path(gen_from_src(0))
+		if len_out == 1:
+			# one output given - return single result:
+			out_0 = out[0]
+			if out_0 and isinstance(out_0, _str_types):
+				return to_full_path(out_0)
+			return to_full_path(gen_from_src(0))
+
+		taken_file_paths = set()
+
+		def process_single(i, itm):
+			if not(itm and isinstance(itm, _str_types)):
+				itm = gen_from_src(i, taken_file_paths)
+			taken_file_paths.add(itm)
+			return to_full_path(itm)
+
+		return tuple(
+			(process_single(i, it) for i, it in enumerate(out))
+		)
