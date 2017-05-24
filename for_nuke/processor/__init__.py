@@ -1,19 +1,27 @@
 __author__ = 'DRL'
 
-from os import path as _os_path
+
+from os import path as _os_path, getenv
 
 from drl_common import errors as _err_comm
 from drl_common import filesystem as _fs
 
-from . import errors
+from . import defaults, envs, errors
 
 _str_types = (str, unicode)
+
+err_nk_dir = errors.NoPathError('nk-script directory')
+err_nk_file = errors.NoPathError('nk-script', is_file=True)
 
 
 class NukeProcessor(object):
 	def __init__(
 		self,
-		src_tex, out_tex=None, explicit_to_exr=True
+		src_tex, out_tex=None, explicit_to_exr=True,
+		nk_dir='', nk_file='',
+		py_dir='', py_file='',
+		nuke_dir='', nuke_exe='',
+		home_override_env='DRL_NUKE_HOME'
 	):
 		super(NukeProcessor, self).__init__()
 
@@ -21,8 +29,138 @@ class NukeProcessor(object):
 		self._out_tex = tuple()
 		self._explicit_to_exr = bool(explicit_to_exr)
 
+		self._nk_dir = ''
+		self._nk_file = ''
+		self._py_dir = ''
+		self._py_file = ''
+		self._nuke_dir = ''
+		self._nuke_file = ''
+
+
 		self.__set_src_tex(src_tex)
 		self.__set_out_tex(out_tex)
+
+		# TODO
+		self.__set_nk_dir(nk_dir)
+		self.__set_nk_file(nk_file)
+
+
+	@staticmethod
+	def __get_default_value(env_nm=None, def_val=None):
+		if not(env_nm and isinstance(env_nm, _str_types)):
+			return def_val
+		return getenv(env_nm, def_val)
+
+	@staticmethod
+	def __to_unix(path, as_file=False):
+		"""
+		Convert slashes to **unix**-style. Trailing slashes are removed.
+
+		:param path: <string>
+		:param as_file: <bool> when True, leading slashes are removed, too.
+		:return: <string>
+		"""
+		assert isinstance(path, _str_types)
+		path = path.replace('\\', '/').rstrip('/')
+		if as_file:
+			path = path.lstrip('/')
+		return path
+
+	@staticmethod
+	def __to_windows(path, as_file=False):
+		"""
+		Convert slashes to **win**-style. Trailing slashes are removed.
+
+		:param path: <string>
+		:param as_file: <bool> when True, leading slashes are removed, too.
+		:return: <string>
+		"""
+		path = path.replace('/', '\\').rstrip('\\')
+		if as_file:
+			path = path.lstrip('\\')
+		return path
+
+	@staticmethod
+	def __get_dir_value(path, env, default, slash_converter_f, error):
+		"""
+		Get directory value, with fallback to the env-var (if present)
+		and then to default value.
+
+		The given path is checked for existence and being a folder.
+
+		Slashes are converted to the specified format, with trailing slash removed.
+
+		:param path: <string/None> the given value for a directory.
+		:param env: <string/None> env-var name to check if no value given.
+		:param default: <string> default value if no env-var given.
+		:param slash_converter_f: either **__to_unix** or **__to_windows**
+		:param error: the <error object> to raise if folder doesn't exist.
+		:return: <string>
+		"""
+		if not(
+			path and isinstance(path, _str_types)
+		):
+			path = NukeProcessor.__get_default_value(env, default)
+
+		path = _os_path.abspath(path)
+		path = slash_converter_f(path)
+		if not(
+			_os_path.exists(path) and _os_path.isdir(path)
+		):
+			raise error
+
+		return path
+
+	@staticmethod
+	def __get_file_value(parent_dir, file_nm, env, default, slash_converter_f, error):
+		"""
+		Get file value, with fallback to the env-var (if present)
+		and then to default value.
+
+		First, parent path is checked for being existing folder.
+		Then, given filename/sub-path is checked for existence and being a file.
+
+		Slashes are converted to the specified format, with trailing slash removed.
+
+		:param parent_dir: <string> path to the parent folder
+		:param file_nm: <string/None> the given value for a file.
+		:param env: <string/None> env-var name to check if no value given.
+		:param default: <string> default value if no env-var given.
+		:param slash_converter_f: either **__to_unix** or **__to_windows**
+		:param error: the <error object> to raise if folder doesn't exist.
+		:return: <string>
+		"""
+		if not(
+			parent_dir and isinstance(parent_dir, _str_types) and
+			_os_path.exists(parent_dir) and _os_path.isdir(parent_dir)
+		):
+			raise error
+
+		if not(
+			file_nm and isinstance(file_nm, _str_types)
+		):
+			file_nm = NukeProcessor.__get_default_value(env, default)
+
+		file_nm = slash_converter_f(file_nm, as_file=True)
+		combined = slash_converter_f(parent_dir) + '/' + file_nm
+		if not(
+			_os_path.exists(combined) and _os_path.isfile(combined)
+		):
+			raise error
+
+		return file_nm
+
+
+	def __set_nk_dir(self, nk_dir):
+		self._nk_dir = NukeProcessor.__get_dir_value(
+			nk_dir, envs.NK_DIR, defaults.nk_dir, NukeProcessor.__to_windows, err_nk_dir
+		)
+
+	def __set_nk_file(self, nk_file):
+		self._nk_file = NukeProcessor.__get_file_value(
+			self._nk_dir, nk_file, None, defaults.nk_file,
+			NukeProcessor.__to_windows, err_nk_file
+		)
 
 	@property
 	def explicit_to_exr(self):
