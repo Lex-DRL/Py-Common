@@ -1,12 +1,15 @@
 __author__ = 'DRL'
 
 
-from os import path as _os_path, getenv
+from os import path as _os_path
+from os import getenv as _os_getenv
 
 from drl_common import errors as _err_comm
 from drl_common import filesystem as _fs
 
-from . import defaults, envs, errors
+from . import defaults as _def
+from . import envs as _env
+from . import errors as _err
 
 _str_types = (str, unicode)
 
@@ -18,7 +21,7 @@ class NukeProcessor(object):
 		nk_dir='', nk_file='',
 		py_dir='', py_file='',
 		nuke_dir='', nuke_exe='',
-		home_override_env=envs.NUKE_HOME_OVERRIDE
+		home_override_env=_env.NUKE_HOME_OVERRIDE
 	):
 		super(NukeProcessor, self).__init__()
 
@@ -51,7 +54,7 @@ class NukeProcessor(object):
 	def __get_default_value(env_nm=None, def_val=None):
 		if not(env_nm and isinstance(env_nm, _str_types)):
 			return def_val
-		return getenv(env_nm, def_val)
+		return _os_getenv(env_nm, def_val)
 
 	@staticmethod
 	def __to_unix(path, as_file=False):
@@ -155,35 +158,35 @@ class NukeProcessor(object):
 
 	def __set_nuke_dir(self, path):
 		self.__nuke_dir = NukeProcessor.__get_dir_value(
-			path, envs.NUKE_DIR, defaults.nuke_dir, NukeProcessor.__to_windows, errors.nuke_dir
+			path, _env.NUKE_DIR, _def.nuke_dir, NukeProcessor.__to_windows, _err.nuke_dir
 		)
 
 	def __set_nuke_file(self, file_name):
 		self.__nuke_exe = NukeProcessor.__get_file_value(
-			self.__nuke_dir, file_name, envs.NUKE_EXE, defaults.nuke_exe,
-			NukeProcessor.__to_windows, errors.nuke_exe
+			self.__nuke_dir, file_name, _env.NUKE_EXE, _def.nuke_exe,
+			NukeProcessor.__to_windows, _err.nuke_exe
 		)
 	
 	def __set_nk_dir(self, path):
 		self.__nk_dir = NukeProcessor.__get_dir_value(
-			path, envs.NK_DIR, defaults.nk_dir, NukeProcessor.__to_unix, errors.nk_dir
+			path, _env.NK_DIR, _def.nk_dir, NukeProcessor.__to_unix, _err.nk_dir
 		)
 
 	def __set_nk_file(self, file_name):
 		self.__nk_file = NukeProcessor.__get_file_value(
-			self.__nk_dir, file_name, None, defaults.nk_file,
-			NukeProcessor.__to_unix, errors.nk_file
+			self.__nk_dir, file_name, None, _def.nk_file,
+			NukeProcessor.__to_unix, _err.nk_file
 		)
 
 	def __set_py_dir(self, path):
 		self.__py_dir = NukeProcessor.__get_dir_value(
-			path, envs.PY_DIR, defaults.py_dir, NukeProcessor.__to_windows, errors.py_dir
+			path, _env.PY_DIR, _def.py_dir, NukeProcessor.__to_windows, _err.py_dir
 		)
 
 	def __set_py_file(self, file_name):
 		self.__py_file = NukeProcessor.__get_file_value(
-			self.__py_dir, file_name, None, defaults.py_file,
-			NukeProcessor.__to_windows, errors.py_file
+			self.__py_dir, file_name, None, _def.py_file,
+			NukeProcessor.__to_windows, _err.py_file
 		)
 	
 # endregion
@@ -427,7 +430,7 @@ class NukeProcessor(object):
 							**NoPathError** is raised at call with exceeding id.
 			"""
 			def _raiser(dummy_id):
-				raise errors.NoPathError('source texture')
+				raise _err.NoPathError('source texture')
 
 			if not src:
 				return _raiser
@@ -456,7 +459,7 @@ class NukeProcessor(object):
 			max_src_id = len_src - 1
 
 			def _get_matching_src(src_id):
-				src_err = errors.NoPathError('source texture %s' % src_id)
+				src_err = _err.NoPathError('source texture %s' % src_id)
 				if src_id > max_src_id:
 					raise src_err
 				res_src = src[src_id]
