@@ -36,6 +36,7 @@ class NukeProcessor(object):
 		self.__nk_file = ''
 		self.__py_dir = ''
 		self.__py_file = ''
+		self.__home_override_env = ''
 
 		self.__set_src_tex(src_tex)
 		self.__set_out_tex(out_tex)
@@ -46,6 +47,7 @@ class NukeProcessor(object):
 		self.__set_nk_file(nk_file)
 		self.__set_py_dir(py_dir)
 		self.__set_py_file(py_file)
+		self.__set_home_env_override(home_override_env)
 
 
 # region Low-level Dir-File property setters
@@ -188,7 +190,15 @@ class NukeProcessor(object):
 			self.__py_dir, file_name, None, _def.py_file,
 			NukeProcessor.__to_windows, _err.py_file
 		)
-	
+
+	def __set_home_env_override(self, env_name):
+		if not env_name:
+			self.__home_override_env = ''
+			return
+
+		env_name = _err_comm.NotStringError(env_name, 'env_name').raise_if_needed()
+		self.__home_override_env = env_name
+
 # endregion
 
 
@@ -241,6 +251,14 @@ class NukeProcessor(object):
 	@py_file.setter
 	def py_file(self, value):
 		self.__set_py_file(value)
+
+	@property
+	def home_override_env(self):
+		return self.__home_override_env
+
+	@home_override_env.setter
+	def home_override_env(self, value):
+		self.__set_home_env_override(value)
 
 # endregion
 
@@ -384,7 +402,24 @@ class NukeProcessor(object):
 	@out_tex.setter
 	def out_tex(self, value):
 		self.__set_out_tex(value)
-	
+
+	@property
+	def explicit_to_exr(self):
+		"""
+		When output texture isn't specified explicitly, this property defines
+		whether extension of the resulting file will be EXR or PNG.
+
+		:return:
+			<bool>
+				* True - EXR
+				* False - PNG
+		"""
+		return self.__explicit_to_exr
+
+	@explicit_to_exr.setter
+	def explicit_to_exr(self, value):
+		self.__explicit_to_exr = bool(value)
+
 	def get_out_tex(self):
 		"""
 		Generate the file path(s), ready to be passed to the nuke script as an argument.
@@ -540,20 +575,7 @@ class NukeProcessor(object):
 		)
 
 # endregion
-	
-	@property
-	def explicit_to_exr(self):
-		"""
-		When output texture isn't specified explicitly, this property defines
-		whether extension of the resulting file will be EXR or PNG.
 
-		:return:
-			<bool>
-				* True - EXR
-				* False - PNG
-		"""
-		return self.__explicit_to_exr
-
-	@explicit_to_exr.setter
-	def explicit_to_exr(self, value):
-		self.__explicit_to_exr = bool(value)
+	def get_command(self):
+		# TODO
+		pass
