@@ -265,18 +265,34 @@ class NukeProcessor(object):
 # region Full path getters
 
 	def nuke_exe_path(self):
+		"""
+		Get the actual path of nuke.exe file, ready to be passed to the command line.
+
+		:return: <str>
+		"""
 		return NukeProcessor.__to_windows(
 			self.__nuke_dir + '/' + self.__nuke_exe,
 			as_file=True
 		)
 
 	def nk_file_path(self):
+		"""
+		Get the actual path to the nk script file, ready to be passed to the command line.
+
+		:return: <str>
+		"""
 		return NukeProcessor.__to_unix(
 			self.__nk_dir + '/' + self.__nk_file,
 			as_file=True
 		)
 
 	def py_file_path(self):
+		"""
+		Get the actual path of python file that launches the render,
+		ready to be passed to the command line.
+
+		:return: <str>
+		"""
 		return NukeProcessor.__to_windows(
 			self.__py_dir + '/' + self.__py_file,
 			as_file=True
@@ -576,6 +592,59 @@ class NukeProcessor(object):
 
 # endregion
 
-	def get_command(self):
-		# TODO
-		pass
+	def get_command(self, nuke_x=False):
+		"""
+		Generates the command string that actually launches Nuke.
+
+		It contains these parts:
+			* "C:\Program Files\Nuke8.0v5\Nuke8.0.exe" // path to the nuke.exe
+			*
+				-t "e:\1-Projects\0-Scripts\Python\for_nuke\process_with_script.py"
+				// the script opening the scene and launching render process
+			*
+				"e:/1-Projects/0-Scripts/Python/for_nuke/post-bake_turtle_unity.nk"
+				// the actual nuke script file (it's passed as the 1st argument to a py script)
+			*
+				"('y:/in_tex_A.png', 'y:/in_tex_B.exr')"
+				// the input texture(s) represented as a string,
+				so the py script will get the same data by performing eval() on this argument.
+			*
+				"'y:/out_tex.png'"
+				// similarly, the output texture
+
+		:return: <string>
+		"""
+		nuke_exe_path = self.nuke_exe_path()
+		if '"' in nuke_exe_path:
+			raise _err.nuke_exe_with_quotes
+
+		py_path = self.py_file_path()
+		if '"' in py_path:
+			raise _err.py_file_with_quotes
+
+		nk_path = self.nk_file_path()
+		if '"' in nk_path:
+			raise _err.nk_file_with_quotes
+
+		src_tex_arg = repr(str(self.src_tex))
+		if not src_tex_arg:
+			src_tex_arg = '""'
+		if not src_tex_arg[0] == '"':
+			src_tex_arg = '"%s"' % src_tex_arg
+
+		out_tex_arg = repr(str(self.get_out_tex()))
+		if not out_tex_arg:
+			out_tex_arg = '""'
+		if not out_tex_arg[0] == '"':
+			out_tex_arg = '"%s"' % out_tex_arg
+
+		return '"{nuke}" {nukex} -t "{py}" "{nk}" {src} {out}'.format(
+			nuke=nuke_exe_path,
+			nukex='--nukex' if nuke_x else '',
+			py=py_path,
+			nk=nk_path,
+			src=src_tex_arg,
+			out=out_tex_arg
+		)
+
+	# TODO: start the actual render-starter class (the one that's called from py script)
