@@ -1,10 +1,20 @@
 __author__ = 'DRL'
 
-import pytz as _pytz  # $ pip install pytz
-import tzlocal as _tzlocal  # $ pip install tzlocal
+# UTC from pytz
+try:
+	from pytz import utc  # $ pip install pytz
+	utc_error = None
+except ImportError as err:
+	utc = None
+	utc_error = err
 
-UTC = _pytz.utc
 
-# since it could update during runtime,
-# it's up to higher-level module to decide whether to cache it or just call every time
-get_local = _tzlocal.get_localzone
+# get_local from tzlocal
+try:
+	from tzlocal import get_localzone as get_local  # $ pip install tzlocal
+	# since it could update during runtime,
+	# it's up to higher-level module to decide whether to cache it or just call every time
+	local_error = None
+except ImportError as err:
+	get_local = None
+	local_error = err
