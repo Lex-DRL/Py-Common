@@ -3,6 +3,54 @@ __author__ = 'DRL'
 import inspect as _inspect
 
 
+class NotTypeError(TypeError):
+	"""
+	This exception is thrown when a type is expected,
+	but instead the actual value is provided.
+	"""
+	def __init__(self, val=None, object_name=''):
+		msg = 'Type is expected'
+
+		if object_name:
+			msg += " for <{0}>.".format(object_name)
+		else:
+			msg += "."
+
+		if val is None:
+			msg += ' Got the actual value instead.'
+		else:
+			msg += ' Got: {0}'.format(repr(val))
+
+		super(NotTypeError, self).__init__(msg)
+		self.object_name = object_name
+		self.value = val
+
+	def raise_if_not_type(self):
+		"""
+		Raises self, if the provided value is not a type.
+
+		:return: The value, if it's OK.
+		"""
+		val = self.value
+		if not isinstance(val, type):
+			raise self
+		return val
+
+	def raise_if_wrong_arg_for_isinstance(self):
+		"""
+		Raises self, if the provided value can't be passed to the isinstance() function
+		as the 2nd argument (allowed types).
+
+		:return: The value, if it's OK.
+		"""
+		val = self.value
+		if isinstance(val, tuple):
+			if all([isinstance(t, type) for t in val]):
+				return val
+			raise self
+		return self.raise_if_not_type()
+
+
 class WrongTypeError(TypeError):
 	"""
 	The given value doesn't match expected type.
