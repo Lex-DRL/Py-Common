@@ -115,3 +115,37 @@ def to_ranges(iterable, to_tuple=True):
 	gen = to_ranges_generator(iterable)
 	out_type = tuple if to_tuple else list
 	return out_type(gen)
+
+
+def group_items(items, key_f=None):
+	"""
+	Turns a plain iterable of items to a groups of items (list of tuples).
+	Item's group is determined by the group_key_f function.
+
+	:param key_f:
+		<callable>
+
+		It takes exactly one argument (the item)
+		and returns whatever is considered a grouping/sorting key. (string, int, tuple...)
+
+	:return:
+		<list of tuples>
+
+		* List contains groups.
+		* Groups contain the actual items.
+	"""
+	if key_f is None or not callable(key_f):
+		key_f = lambda x: repr(x)
+
+	grouped = dict()  # start as dict, for easier grouping
+	grouped_setdefault = grouped.setdefault
+	get_group = lambda key: grouped_setdefault(key, [])  # init new list, if necessary
+	for i in items:
+		get_group(key_f(i)).append(i)
+
+	return [  # list of tuples:
+		tuple(v) for k, v in sorted(
+			grouped.iteritems(),
+			key=lambda x: x[0]
+		)
+	]
