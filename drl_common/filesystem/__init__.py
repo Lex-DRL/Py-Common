@@ -500,11 +500,14 @@ def do_with_file(path, function, mode='r', opening_function=None):
 	def check_func_arg(func, number_of_arguments):
 		import inspect
 		if not hasattr(func, '__call__'):
-			raise Exception('Function expected. Got: ' + str(func))
+			raise Exception('Function expected. Got: ' + repr(func))
 
 		num_args = len(inspect.getargspec(func).args)
 		if num_args != number_of_arguments:
-			raise Exception("Provided function has wrong number of arguments. Expected 1, got: " + str(num_args))
+			raise Exception(
+				"Provided function has wrong number of arguments. Expected 1, got: " +
+				str(num_args)
+			)
 
 	check_func_arg(function, 1)
 	if opening_function is None:

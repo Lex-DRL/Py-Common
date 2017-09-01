@@ -14,7 +14,7 @@ def _check_type(value, correct_type, converted_type, error_message):
 	if isinstance(value, converted_type):
 		value = correct_type(value)
 	if not isinstance(value, correct_type):
-		raise TypeError(error_message + str(value))
+		raise TypeError(error_message + repr(value))
 	return value
 
 
@@ -28,7 +28,7 @@ class DataItem(object):
 
 	def __set_name(self, value):
 		if not isinstance(value, (str, unicode)):
-			raise TypeError("String value expected for <asset_name> property. Got: " + str(value))
+			raise TypeError("String value expected for <asset_name> property. Got: " + repr(value))
 		self.__asset_name = value
 
 	@property
@@ -129,7 +129,7 @@ def size_to_beauty(size):
 
 def data_to_csv_list(data):
 	if not isinstance(data, (list, tuple)):
-		raise TypeError('List expected. Got: ' + str(data))
+		raise TypeError('List expected. Got: ' + repr(data))
 	if not data:
 		return []
 
@@ -143,7 +143,7 @@ def data_to_csv_list(data):
 	]
 	for a in data:
 		if not isinstance(a, DataItem):
-			raise TypeError('Wrong element type in data array. Expected <DataItem>, got: ' + str(a))
+			raise TypeError('Wrong element type in data array. Expected <DataItem>, got: ' + repr(a))
 		res.append([
 			a.asset_name,
 			size_to_beauty(a.size_imported), a.size_imported,

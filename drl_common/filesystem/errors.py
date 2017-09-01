@@ -20,12 +20,18 @@ class FilesystemBaseError(IOError):
 		if not (err_num and isinstance(err_num, int)):
 			err_num = errno.EPERM
 		if not isinstance(message, (str, unicode)):
-			message = str(message)
+			try:
+				message = str(message)
+			except:
+				message = unicode(message)
 		if filename is None:
 			super(FilesystemBaseError, self).__init__(err_num, message)
 			return
 		if not isinstance(filename, (str, unicode)):
-			filename = str(filename)
+			try:
+				filename = str(filename)
+			except:
+				filename = unicode(filename)
 		super(FilesystemBaseError, self).__init__(err_num, message, filename)
 
 
@@ -156,7 +162,10 @@ class ParentFolderIsFileError(FileOverwriteBaseError):
 	def __init__(self, filename=None, parent_folder=None, overwrite=None, message='Parent folder is file'):
 		if not (parent_folder is None):
 			if not isinstance(parent_folder, (str, unicode)):
-				parent_folder = str(parent_folder)
+				try:
+					parent_folder = str(parent_folder)
+				except:
+					parent_folder = unicode(parent_folder)
 			message += ' (folder: "%s")' % parent_folder
 		super(ParentFolderIsFileError, self).__init__(filename, overwrite, message)
 		self.parent_folder = parent_folder

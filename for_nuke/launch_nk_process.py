@@ -26,11 +26,11 @@ def launch_nuke_with_command(cmd='', home_override_env='DRL_NUKE_HOME'):
 
 	def to_output():
 		output = proc.readAll()
-		if not isinstance(output, str):
-			if sys.version_info[0] < 3:
+		if not isinstance(output, (str, unicode)):
+			try:
 				output = str(output)
-			else:
-				output = str(output)
+			except:
+				output = unicode(output)
 		output = output.strip()
 		if output:
 			print output

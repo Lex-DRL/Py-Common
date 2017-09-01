@@ -21,7 +21,7 @@ class Check(object):
 
 	def __set_filepath(self, filepath):
 		if not isinstance(filepath, (str, unicode)):
-			raise Exception("String expected as <filepath>. Got: " + str(filepath))
+			raise Exception("String expected as <filepath>. Got: " + repr(filepath))
 		fs.error_if.path_not_readable(filepath)
 		self.__filepath = filepath
 
@@ -47,7 +47,7 @@ class Check(object):
 	@separator.setter
 	def separator(self, value):
 		if not isinstance(value, (str, unicode, unichr)):
-			raise Exception('Wrong type. String expected. Got: ' + str(value))
+			raise Exception('Wrong type. String expected. Got: ' + repr(value))
 		self.__sep = value
 
 	@property
@@ -56,7 +56,7 @@ class Check(object):
 	@separator_lines.setter
 	def separator_lines(self, value):
 		if not isinstance(value, int):
-			raise Exception('Wrong type. Int expected. Got: ' + str(value))
+			raise Exception('Wrong type. Int expected. Got: ' + repr(value))
 		self.__sep_lines = value
 
 	def split_to_groups(self):

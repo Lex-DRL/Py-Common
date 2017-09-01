@@ -72,13 +72,10 @@ class WrongTypeError(TypeError):
 			if types is None:
 				types_given = False
 			else:
-				types_name = str(types)
+				types_name = repr(types)
 
 		if types_given:
-			msg += ' Expected: {0}, got: {1}.'.format(
-				types_name,
-				'"%s"' % val if isinstance(val, (str, unicode)) else str(val)
-			)
+			msg += ' Expected: {0}, got: {1}.'.format(types_name, repr(val))
 
 		super(WrongTypeError, self).__init__(msg)
 		self.value = val
