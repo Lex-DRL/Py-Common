@@ -1,5 +1,8 @@
 __author__ = 'DRL'
 
+from . import errors as _err
+
+# conversion matrices for CIE XYZ space:
 # from pymel.core.datatypes import Vector, Matrix
 #
 # _mtx_to_sr# gb = Matrix(
@@ -21,33 +24,47 @@ _pow = 2.4
 _pow_inv = 1.0 / _pow
 
 
-def linear_to_srgb(color):
+def linear_to_srgb(*color):
 	"""
 	Convert color value from Linear space to sRGB.
 
-	:param color: linear color
-	:type color: int|float|tuple[int|float]|list[int|float]
+	:param color:
+		linear color:
+		either single iterable arg or a sequence of scalar args.
+	:type color: int|float
 	"""
 	def calc_comp(c):
 		if c <= 0.0031308:
 			return c * _c_mul
 		# return (1 + _a) * pow(c, 1.0 / 2.4) - _a
 		return _a_one * pow(c, _pow_inv) - _a
-	clr = [color] if isinstance(color, (int, float)) else color
-	return tuple(map(calc_comp, clr))
+
+	lc = len(color)
+	_err.NoValueError('color').raise_by_condition(lc, lambda x: x < 1)
+	clr = color[0] if (lc == 1) else color
+	if isinstance(clr, (int, float)):
+		clr = [clr]
+	return map(calc_comp, clr)
 
 
-def srgb_to_linear(color):
+def srgb_to_linear(*color):
 	"""
 	Convert color value from sRGB space to Linear.
 
-	:param color: linear color
-	:type color: int|float|tuple[int|float]|list[int|float]
+	:param color:
+		sRGB color:
+		either single iterable arg or a sequence of scalar args.
+	:type color: int|float
 	"""
 	def calc_comp(c):
 		if c <= 0.04045:
 			return c * _c_mul_inv
 		# return pow((c + _a) / (1 + _a), _pow)
 		return pow((c + _a) * _a_one_inv, _pow)
-	clr = [color] if isinstance(color, (int, float)) else color
-	return tuple(map(calc_comp, clr))
+
+	lc = len(color)
+	_err.NoValueError('color').raise_by_condition(lc, lambda x: x < 1)
+	clr = color[0] if (lc == 1) else color
+	if isinstance(clr, (int, float)):
+		clr = [clr]
+	return map(calc_comp, clr)
