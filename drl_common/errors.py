@@ -189,8 +189,10 @@ class EmptyStringError(ValueError):
 		"""
 		Raise self if bool(val) is False.
 
-		:param val: <str> tested value.
+		:param val: tested value.
+		:type val: str|unicode
 		:return: given value (asserted it's string).
+		:rtype: str|unicode
 		"""
 		if not val:
 			raise self
