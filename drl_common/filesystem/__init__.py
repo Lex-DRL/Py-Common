@@ -6,13 +6,12 @@ import shutil as sh
 import drl_common.errors as err
 from drl_common import utils
 from . import errors, error_if, file_time
+from .. import is_maya as _im
 
 
-is_maya = True
-try:
+_is_maya = _im.is_maya()
+if _is_maya:
 	from maya import cmds
-except ImportError:
-	is_maya = False
 
 
 class FileFilter(object):
@@ -192,14 +191,17 @@ def to_windows_path(path, trailing_slash=None, leading_slash=False):
 	"""
 	Ensures given path has Windows-style slashes. ("/" -> "\")
 
-	:param path: <str/unicode> path
-	:param trailing_slash: <bool/None> Whether we need to ensure path has or lacks trailing slash:
-
-		* None: (default) no check performed. Leave as is, just replace path slashes.
-		* 0/False: Force-remove trailing slash
-		* 1/True: Force-leave (single) trailing slash.
-	:param leading_slash: <bool/None> The same for leading slash. However, it's <0> (force-removed) by default.
-	:return: <str/unicode>
+	:type path: str|unicode
+	:param trailing_slash:
+		Whether we need to ensure path has or lacks trailing slash:
+			* None: (default) no check performed. Leave as is, just replace path slashes.
+			* 0/False: Force-remove trailing slash
+			* 1/True: Force-leave (single) trailing slash.
+	:type trailing_slash: bool|None
+	:param leading_slash:
+		The same for leading slash. However, it's <0> (force-removed) by default.
+	:type leading_slash: bool|None
+	:rtype: str|unicode
 	"""
 	return __convert_path_slashes(path, '/', '\\', trailing_slash, leading_slash)
 
@@ -208,14 +210,20 @@ def to_unix_path(path, trailing_slash=None, leading_slash=0):
 	"""
 	Ensures given path has unix-style slashes. ("\" -> "/")
 
-	:param path: <str/unicode> path
-	:param trailing_slash: <bool/None> Whether we need to ensure path has or lacks trailing slash:
-
-		* None: (default) no check performed. Leave as is, just replace path slashes.
-		* False: Force-remove trailing slash
-		* True: Force-leave (single) trailing slash.
-	:param leading_slash: <bool/None> The same for leading slash. However, it's <0> (force-removed) by default.
-	:return: <str/unicode>
+	:type path: str|unicode
+	:param trailing_slash:
+		Whether we need to ensure path has or lacks trailing slash:
+			*
+				None: (default) no check performed.
+				Leave as is, just replace path slashes.
+			* False: Force-remove trailing slash
+			* True: Force-leave (single) trailing slash.
+	:type trailing_slash: bool|None
+	:param leading_slash:
+		The same for leading slash.
+		However, it's <0> (force-removed) by default.
+	:type leading_slash: bool|None
+	:rtype: str|unicode
 	"""
 	return __convert_path_slashes(
 		path,
@@ -237,13 +245,18 @@ Replace file with an empty folder?
 	"""
 	Determine whether we're allowed to overwrite a file/folder.
 
-	:param overwrite: What to do if we face a case where we need to overwrite a file/folder.
-
-		* 0/False: Nothing. Error is thrown.
-		* 1/True: Overwrite.
-		* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
+	:param overwrite:
+		What to do if we face a case where we need to overwrite a file/folder.
+			* 0/False: Nothing. Error is thrown.
+			* 1/True: Overwrite.
+			*
+				2 or more when called from Maya:
+				display interactive dialog allowing a user to choose.
+				When called outside of Maya, considered as <True>.
+	:type overwrite: int|bool
+	:type path: str|unicode
 	"""
-	if is_maya and overwrite > 1:
+	if _is_maya and overwrite > 1:
 		user_choice = cmds.confirmDialog(
 			title='Overwrite warning',
 			message=message.format(path),
@@ -269,13 +282,20 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 	If they don't exist, they're created.
 	If any of parents is actually a file itself, either it's removed or an error is thrown.
 
-	:param path: <str> File path (absolute recommended).
-	:param overwrite: What to do if a parent folder is actually a file itself:
-
-		* 0/False: Nothing. Error is thrown.
-		* 1/True: Remove file and create folder with it's name.
-		* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
-	:return: <str> Cleaned-up path on success. I.e., unix-style slashes, removed extra trailing/leading slashes.
+	:param path: File path (absolute recommended).
+	:type path: str|unicode
+	:param overwrite:
+		What to do if a parent folder is actually a file itself:
+			* 0/False: Nothing. Error is thrown.
+			* 1/True: Remove file and create folder with it's name.
+			*
+				2 or more when called from Maya:
+				display interactive dialog allowing a user to choose.
+				When called outside of Maya, considered as <True>.
+	:return:
+		Cleaned-up path on success.
+		I.e., unix-style slashes, removed extra trailing/leading slashes.
+	:rtype: str|unicode
 	:raises:
 		* NotStringError - path isn't a string at all
 		* EmptyStringError - path is empty
@@ -345,13 +365,21 @@ def clean_path_for_folder(path, overwrite=0):
 	"""
 	Creates the given folder path. Creates intermediate directories if needed.
 
-	:param path: <string> Folder path. Any slashes. Doesn't matter if there's trail-slash.
-	:param overwrite: What to do if a parent folder is actually a file itself:
-
-		* 0/False: Nothing. Error is thrown.
-		* 1/True: Remove file and create folder with it's name.
-		* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
-	:return: <str> Cleaned-up path on success. I.e., unix-style slashes, removed extra trailing/leading slashes.
+	:param path:
+		Folder path. Any slashes. Doesn't matter if there's trail-slash.
+	:type path: str|unicode
+	:param overwrite:
+		What to do if a parent folder is actually a file itself:
+			* 0/False: Nothing. Error is thrown.
+			* 1/True: Remove file and create folder with it's name.
+			*
+				2 or more when called from Maya:
+				display interactive dialog allowing a user to choose.
+				When called outside of Maya, considered as <True>.
+	:return:
+		Cleaned-up path on success.
+		I.e., unix-style slashes, removed extra trailing/leading slashes.
+	:rtype: str|unicode
 	"""
 	path = ensure_breadcrumbs_are_folders(path, overwrite)
 	# it's guaranteed to have no trailing slash now
@@ -384,17 +412,20 @@ def clean_path_for_folder(path, overwrite=0):
 def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 	"""
 	Prepares the path for a file. I.e.:
+		* creates parent directories
+		* removes the existing file if needed
 
-	* creates parent directories
-	* removes the existing file if needed
-
-	:param path: <string> Folder path. Any slashes. Doesn't matter if there's trail-slash.
-	:param overwrite_folders: What to do if a parent folder is actually a file itself:
-
-		* 0/False: Nothing. Error is thrown.
-		* 1/True: Remove file and create folder with it's name.
-		* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
-	:return: <str> Cleaned-up path on success. I.e., unix-style slashes, removed extra trailing/leading slashes.
+	:param path: Folder path. Any slashes. Doesn't matter if there's trail-slash.
+	:type path: str|unicode
+	:param overwrite_folders:
+		What to do if a parent folder is actually a file itself:
+			* 0/False: Nothing. Error is thrown.
+			* 1/True: Remove file and create folder with it's name.
+			* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
+	:return:
+		Cleaned-up path on success.
+		I.e., unix-style slashes, removed extra trailing/leading slashes.
+	:rtype: str|unicode
 	"""
 	path = ensure_breadcrumbs_are_folders(path, overwrite_folders)
 	# it's guaranteed to have no trailing slash now
@@ -523,8 +554,8 @@ def do_with_file(path, function, mode='r', opening_function=None):
 		with opening_function(path, mode) as fl:
 			# fl = open(path)
 			res = function(fl)
-	except IOError as err:
-		raise Exception('Error reading file "{0}":\n{1}'.format(path, err))
+	except IOError as e:
+		raise Exception('Error reading file "{0}":\n{1}'.format(path, e))
 	return res
 
 
@@ -533,16 +564,17 @@ def read_file_lines(path, strip_newline_character=True):
 	High-level function for reading file contents as list of lines.
 	Automatically detects file encoding and handles it (including utf-8).
 
-	:param path: File path (string)
-	:param strip_newline_character: Whether to remove trailing newline character at each line
-	:return: list of strings or unicodes (if file is non-ascii)
+	:type path: str|unicode
+	:param strip_newline_character:
+		Whether to remove trailing newline character at each line
+	:rtype: list[str|unicode]
 	"""
 	import codecs
 	import chardet
 	# path = r'e:\1-Projects\0-Common_Code\Sources\Unity\DRL\Shaders\AIVIK-U5\Y-Fog\Volumetric\tmp.txt'
 	# path = r'e:\1-Projects\0-Common_Code\Sources\Unity\DRL\Shaders\AIVIK-U5\Y-Fog\Volumetric\MultiTex-Diffuse-x4-gen.shader'
 
-	#get encoding:
+	# get encoding:
 	fl_bytes = min(32, os.path.getsize(path))
 	raw = do_with_file(path, lambda x: x.read(fl_bytes), 'rb')
 	if raw.startswith(codecs.BOM_UTF8):
