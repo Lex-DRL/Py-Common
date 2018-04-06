@@ -1,5 +1,11 @@
 __author__ = 'DRL'
 
+try:
+	# support type hints:
+	from typing import *
+except ImportError:
+	pass
+
 import os
 import shutil as sh
 
@@ -269,9 +275,7 @@ Replace file with an empty folder?
 			icon=icon
 		)
 		return user_choice == yes_button
-	if overwrite:
-		return True
-	return False
+	return bool(overwrite)
 
 
 def ensure_breadcrumbs_are_folders(path, overwrite=0):
@@ -422,12 +426,23 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 			* 0/False: Nothing. Error is thrown.
 			* 1/True: Remove file and create folder with it's name.
 			* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
+	:param remove_file:
+		Whether to automatically remove a file at the given path:
+			* 0/False: Nothing. Error is thrown.
+			* 1/True: Overwrite.
+			*
+				2 or more when called from Maya:
+				display interactive dialog allowing a user to choose.
+				When called outside of Maya, considered as <True>.
+	:type remove_file: int|bool
 	:return:
 		Cleaned-up path on success.
 		I.e., unix-style slashes, removed extra trailing/leading slashes.
 	:rtype: str|unicode
 	"""
-	path = ensure_breadcrumbs_are_folders(path, overwrite_folders)
+	path = ensure_breadcrumbs_are_folders(
+		path, overwrite_folders
+	)  # type: Union(str, unicode)
 	# it's guaranteed to have no trailing slash now
 
 	if not os.path.exists(path):
