@@ -436,9 +436,15 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 				When called outside of Maya, considered as <True>.
 	:type remove_file: int|bool
 	:return:
-		Cleaned-up path on success.
-		I.e., unix-style slashes, removed extra trailing/leading slashes.
-	:rtype: str|unicode
+		3 results:
+			*
+				Cleaned-up path on success.
+				I.e., unix-style slashes, removed extra trailing/leading slashes.
+			* Whether the path was cleaned-up (removed folder/file at this path)
+			*
+				Whether interactive dialog was shown to a user
+				**AND** they have chosen to cancel overwrite process
+				(i.e., path was **not** cleaned).
 	"""
 	path = ensure_breadcrumbs_are_folders(
 		path, overwrite_folders
@@ -446,28 +452,32 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 	# it's guaranteed to have no trailing slash now
 
 	if not os.path.exists(path):
-		return path
+		return path, False, False
 
 	if os.path.isfile(path):
-		if __is_overwrite_enabled(
+		overwritten = __is_overwrite_enabled(
 			remove_file, path, no_button='No',
 			message='File already exist. Overwrite it (remove)?\n{0}',
 			annotation_yes='Remove the file',
 			annotation_no='Keep the file'
-		):
+		)
+		if overwritten:
 			os.remove(path)
-		return path
+		user_cancelled = remove_file > 1 and not overwritten
+		return path, overwritten, user_cancelled
 
 	if os.path.isdir(path):
-		if __is_overwrite_enabled(
+		overwritten = __is_overwrite_enabled(
 			remove_file, path,
 			message='Folder already exist at the same path as the file. Remove it?\n{0}',
 			annotation_yes="Remove the folder with all of it's contents",
 			annotation_no='Keep the folder (error is thrown)',
 			icon='critical'
-		):
+		)
+		user_cancelled = remove_file > 1 and not overwritten
+		if overwritten:
 			sh.rmtree(path)
-			return path
+			return path, overwritten, user_cancelled
 		raise errors.FileAlreadyExistError(path, overwrite_folders, 'Folder already exist at the file path')
 
 	raise errors.UnknownObjectError(path)
