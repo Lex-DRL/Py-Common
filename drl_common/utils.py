@@ -1,6 +1,60 @@
+from collections import Iterable
 from . import errors as err
 
 __author__ = 'DRL'
+
+
+class Dummy(object):
+	"""
+	Just a dummy service class, acting like
+	an editable namedtuple.
+
+	It's child elements can be added:
+		* on object creation (as arguments):
+			``Dummy(a=1, b=[])``
+		* simply by assignment with a dot operator:
+			``q = Dummy();``
+			``q.a = 1;``
+			``q.b = []``
+
+	Both ways are equally good, and all the children
+	added after creation are also tracked and returned by
+	respective methods.
+	"""
+	def __init__(self, **kwargs):
+		super(Dummy, self).__init__()
+		self.__dict__.update(kwargs)
+
+	def as_dict(self):
+		return {
+			k: v for k, v in self.__dict__.iteritems()
+			if k and not k.startswith('_')
+		}
+
+	def items(self):
+		return sorted(self.as_dict().iteritems())
+
+	def __repr__(self):
+		res_vals = self.items()
+		num = len(res_vals)
+		pre, separator, post = '', ', ', ''
+		if (
+			num > 3 or
+			any(
+				(isinstance(val, Iterable) and not isinstance(val, (str, unicode)))
+				for nm, val in (res_vals if num < 4 else res_vals[:3])
+			)
+		):
+			pre, separator, post = '\n\t', ',\n\t', '\n'
+
+		res_vals = [
+			'{0}={1}'.format(nm, repr(val))
+			for nm, val in res_vals
+		]
+		res_vals = separator.join(res_vals)
+		if res_vals:
+			res_vals = pre + res_vals + post
+		return 'Dummy({0})'.format(res_vals)
 
 
 def remove_duplicates(items=None):
