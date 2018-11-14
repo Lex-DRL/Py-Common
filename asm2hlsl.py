@@ -1,7 +1,7 @@
 __author__ = 'DRL'
 
 try:
-	# support type hints:
+	# support type hints in Python 3:
 	from typing import *
 except ImportError:
 	pass
@@ -99,8 +99,12 @@ class ShaderType(Enum):
 	vert = 'Vertex'
 	frag = 'Pixel/Fragment'
 
+all_shader_types = {ShaderType.vert, ShaderType.frag}
+
 # endregion
 
+
+# region Named Tuples
 
 LineData = namedtuple(
 	'LineData',
@@ -121,6 +125,11 @@ ShaderLineRanges = namedtuple(
 	['pre_comment', 'code', 'post_comment']
 )  # type: (Optional[Range], CodeBlock, Optional[Range])
 
+# endregion
+
+
+# region Predefined public vars
+
 vert_extensions = {
 	'.vs', '.vs_1_0', '.vs_1_1', '.vs_1_2', '.vs_1_3', '.vs_1_4', '.vs_2_0', '.vs_2_5', '.vs_2_x', '.vs_3_0',
 }
@@ -130,6 +139,10 @@ frag_extensions = {
 in_extensions = {'.fx', '.cg', '.cgfx', '.asm'}.union(vert_extensions).union(frag_extensions)
 out_ext = '.hlsl'
 
+# endregion
+
+
+# region Functions splitting the liner lines list to a bunch of separate shader blocks
 
 def _classify_line(
 	line  # type: Union[str, unicode]
@@ -523,6 +536,38 @@ def _detect_shader_ranges(
 	# to the actual shader blocks, with pre- and post-comments
 	return shader_line_ranges(code_blocks, comment_ranges)
 
+# endregion
+
+
+def _hlsl_code(
+	shader_type,  # type: ShaderType
+	shader_model,  # type: int  # not used yet 'cause the script only handles SM 3.0, could be anything for now
+	pre_comments,  # type: List[str]
+	code_lines,  # type: List[LineData]
+	post_comments  # type: List[str]
+):
+	"""
+	The main function which actually performs ASM->HLSL code conversion.
+	It takes lines as multiple arguments, pre-processed to detect their grouping
+	and in-line basic structure. And therefore is called from the other, higher-level func.
+	All the arguments are mandatory, but empty lists or zero SM can be provided.
+
+	:param shader_model: integer representing SM multiplied by 10. I.e., 14, 20, 30, 35
+	"""
+
+	error_start = '// ERROR ASM-> HLSL: '
+
+	if not(shader_type and shader_type in all_shader_types):
+		return [error_start + 'Unknown shader type']
+
+	res = list()  # type: List[str]
+
+	# TODO
+
+	# TODO 1: detect metadata (var names and types) from the pre-comment block
+
+	return res
+
 
 def parse_file(file_path, print_path=False):
 	"""
@@ -546,9 +591,27 @@ def parse_file(file_path, print_path=False):
 		return
 
 	if print_path:
-		print '\tParsing...' + file_path
+		print '\tParsing... ' + file_path
 	shader_ranges = _detect_shader_ranges(lines, ext)
-	pp(shader_ranges)
+	hlsl_shaders = []  # type: List[List[str]]
+	for pre_c_r, code_r, post_c_r in shader_ranges:  # type: (Optional[Range], CodeBlock, Optional[Range])
+		pre_comments = (
+			[l.comment for l in lines[pre_c_r.first:pre_c_r.last+1]]
+			if pre_c_r
+			else list()
+		)  # type: List[str]
+
+		post_comments = (
+			[l.comment for l in lines[post_c_r.first:post_c_r.last+1]]
+			if post_c_r
+			else list()
+		)  # type: List[str]
+
+		shader_type, shader_model, code_first, code_last = code_r  # type: (ShaderType, int, int, int)
+		hlsl_shaders.append(
+			_hlsl_code(shader_type, shader_model, pre_comments, lines[code_first:code_last+1], post_comments)
+		)
+	del lines
 
 
 def is_proper_input_file(file_path):
