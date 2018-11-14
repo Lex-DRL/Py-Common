@@ -169,8 +169,10 @@ def _classify_line(
 	args = tuple()  # type: Tuple[str]
 
 	if code:
-		args = (s.strip() for s in code.split())  # split by whitespaces...
-		args = [s for s in args if s]  # ... and keep only non-empty strings
+		# split by whitespaces...
+		args = (s.strip() for s in code.split())
+		# ... and keep only non-empty strings:
+		args = [s for s in args if s]  # type: List[str]
 		op = args.pop(0)
 		args = ' '.join(args).split(',')
 		args = (s.strip() for s in args)
