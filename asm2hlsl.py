@@ -68,6 +68,7 @@ class PsRegister(Enum):
 	vFace = 'Face'
 	vPos = 'Position'
 
+
 # Dictionary, determining dimensions of a given register (whether it's a vector4 or a scalar):
 reg_vector4 = {
 	VsRegister.v: True,
@@ -131,10 +132,12 @@ ShaderLineRanges = namedtuple(
 # region Predefined public vars
 
 vert_extensions = {
-	'.vs', '.vs_1_0', '.vs_1_1', '.vs_1_2', '.vs_1_3', '.vs_1_4', '.vs_2_0', '.vs_2_5', '.vs_2_x', '.vs_3_0',
+	'.vs', '.vs_1_0', '.vs_1_1', '.vs_1_2', '.vs_1_3', '.vs_1_4', '.vs_2_0', '.vs_2_5', '.vs_2_x', '.vs_3_0', '.vs_3_5',
+	'.vs_4_0', '.vs_4_5', '.vs_4_6', '.vs_5_0',
 }
 frag_extensions = {
-	'.ps', '.ps_1_0', '.ps_1_1', '.ps_1_2', '.ps_1_3', '.ps_1_4', '.ps_2_0', '.ps_2_5', '.ps_2_x', '.ps_3_0',
+	'.ps', '.ps_1_0', '.ps_1_1', '.ps_1_2', '.ps_1_3', '.ps_1_4', '.ps_2_0', '.ps_2_5', '.ps_2_x', '.ps_3_0', '.ps_3_5',
+	'.ps_4_0', '.ps_4_5', '.ps_4_6', '.ps_5_0',
 }
 in_extensions = {'.fx', '.cg', '.cgfx', '.asm'}.union(vert_extensions).union(frag_extensions)
 out_ext = '.hlsl'
@@ -229,7 +232,7 @@ def _detect_shader_ranges(
 		if line.args or not line.op:
 			return False
 		op = line.op.lower()  # type: str
-		return any(op.startswith(p) for p in _block_prefixes)
+		return any(op.startswith(pref) for pref in _block_prefixes)
 
 	def detect_shader_type(
 		op  # type: str
