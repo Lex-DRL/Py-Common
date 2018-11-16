@@ -25,12 +25,12 @@ except ImportError as er_enum:
 
 from pprint import pprint as pp
 import os as _os
-from collections import namedtuple
+from collections import namedtuple as _namedtuple
 
 _str_t = (str, unicode)
 
 
-# region Register types and their properties
+# region Enums
 
 class VsRegister(Enum):
 	"""
@@ -48,6 +48,8 @@ class VsRegister(Enum):
 	p = 'Predicate'
 
 	a = 'Address'
+
+	o = 'Output'
 
 
 class PsRegister(Enum):
@@ -68,6 +70,43 @@ class PsRegister(Enum):
 	vFace = 'Face'
 	vPos = 'Position'
 
+	oC = 'Output Color'
+	oDepth = 'Output Depth'
+
+
+try:
+	AnyRegister = Union[VsRegister, PsRegister]
+except NameError:
+	# suppress an error in Python 2 with no 'typing' module
+	pass
+
+
+class ShaderType(Enum):
+	vert = 'Vertex'
+	frag = 'Pixel/Fragment'
+
+
+class DataType(Enum):
+	bool = 'Bool'
+	int = 'Int'
+	float = 'Float'
+	sampler = 'Sampler'
+
+
+class SamplerType(Enum):
+	s2d = '2D'
+	cube = 'Cube'
+	volume = 'Volume'
+
+
+all_shader_types = set(ShaderType)
+
+vs_register_type = dict(VsRegister._member_map_)  # type: Dict[str, type(VsRegister)]
+ps_register_type = dict(PsRegister._member_map_)  # type: Dict[str, type(PsRegister)]
+register_type = {
+	ShaderType.vert: vs_register_type,
+	ShaderType.frag: ps_register_type
+}  # type: Dict[ShaderType, Dict[str, AnyRegister]]
 
 # Dictionary, determining dimensions of a given register (whether it's a vector4 or a scalar):
 reg_vector4 = {
@@ -82,6 +121,8 @@ reg_vector4 = {
 
 	VsRegister.a: True,
 
+	VsRegister.o: True,
+
 	PsRegister.v: True,
 	PsRegister.r: True,
 	PsRegister.c: True,
@@ -93,35 +134,61 @@ reg_vector4 = {
 
 	PsRegister.vFace: False,
 	PsRegister.vPos: True,
-}  # type: Dict[Union[type(VsRegister), type(PsRegister)], bool]
 
+	PsRegister.oC: True,
+	PsRegister.oDepth: False,
+}  # type: Dict[AnyRegister, bool]
 
-class ShaderType(Enum):
-	vert = 'Vertex'
-	frag = 'Pixel/Fragment'
+reg_data_type = {
+	VsRegister.v: None,  # TODO V
+	VsRegister.r: None,
+	VsRegister.c: None,
+	VsRegister.i: None,
+	VsRegister.b: None,
+	VsRegister.s: None,
+	VsRegister.aL: None,
+	VsRegister.p: None,
 
-all_shader_types = {ShaderType.vert, ShaderType.frag}
+	VsRegister.a: None,
+
+	VsRegister.o: None,  # TODO ^
+
+	PsRegister.v: DataType.float,
+	PsRegister.r: DataType.float,
+	PsRegister.c: DataType.float,
+	PsRegister.i: DataType.int,
+	PsRegister.b: DataType.bool,
+	PsRegister.s: DataType.sampler,
+	PsRegister.aL: None,
+	PsRegister.p: DataType.bool,
+
+	PsRegister.vFace: None,
+	PsRegister.vPos: None,
+
+	PsRegister.oC: DataType.float,
+	PsRegister.oDepth: DataType.float,
+}  # type: Dict[AnyRegister, Optional[DataType]]
 
 # endregion
 
 
-# region Named Tuples
+# region Named Tuples and data classes
 
-LineData = namedtuple(
+LineData = _namedtuple(
 	'LineData',
 	['op', 'args', 'comment']
 )  # type: (Optional[str], Optional[Tuple[str]], Optional[str])
 
-Range = namedtuple(
+Range = _namedtuple(
 	'Range',
 	['first', 'last']
 )  # type: (int, int)
 
-CodeBlock = namedtuple(
+CodeBlock = _namedtuple(
 	'CodeBlock',
 	['type', 'sm', 'first_line', 'last_line']
 )  # type: (Optional[ShaderType], int, int, int)
-ShaderLineRanges = namedtuple(
+ShaderLineRanges = _namedtuple(
 	'ShaderLineRanges',
 	['pre_comment', 'code', 'post_comment']
 )  # type: (Optional[Range], CodeBlock, Optional[Range])
