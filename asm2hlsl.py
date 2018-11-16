@@ -25,6 +25,8 @@ except ImportError as er_enum:
 
 from pprint import pprint as pp
 import os as _os
+import string as _str
+import re as _re
 from collections import namedtuple as _namedtuple
 
 _str_t = (str, unicode)
@@ -192,6 +194,211 @@ ShaderLineRanges = _namedtuple(
 	'ShaderLineRanges',
 	['pre_comment', 'code', 'post_comment']
 )  # type: (Optional[Range], CodeBlock, Optional[Range])
+
+
+class RegisterVar(object):
+	"""
+	A data class containing meta-object that connects an ASM register to it's HLSL variable.
+	"""
+	def __init__(
+		self,
+		shader_type,  # type: ShaderType
+		register,  # type: str
+		registers_up_to=None,  # type: Union[None, int, str]
+		# data_type,  # type: DataType
+		var_name=None,  # type: Optional[str]
+		is_vector4=True,
+		partial_precision=False
+	):
+		super(RegisterVar, self).__init__()
+
+		# shader_type = ShaderType.frag
+		if shader_type not in all_shader_types:
+			raise ValueError('shader_type is unsupported: ' + repr(shader_type))
+		self.__shader_type = shader_type
+
+		if not isinstance(register, str):
+			raise TypeError('register has a wrong type. <str> expected, got: ' + repr(register))
+		if not register:
+			raise ValueError('empty string is given as register name')
+		# register = 'aL'
+		reg_literal = register.rstrip('0123456789')
+
+		reg_i = register[len(reg_literal):]
+		reg_i = int(reg_i) if reg_i else None
+		try:
+			reg_type = register_type[shader_type][reg_literal]
+		except KeyError:
+			raise ValueError(
+				"Unknown {0} register type: {1}".format(shader_type.value, register)
+			)
+		self.__reg_type = reg_type
+		self.__reg_name = register
+		self.__reg_literal = reg_literal
+		self.__reg_i = reg_i  # type: Optional[int]
+
+		self.__reg_dt = reg_data_type[reg_type]  # type: Optional[DataType]
+
+		self.__regs_to = RegisterVar.__check_up_to(registers_up_to, register, reg_literal, reg_i)
+
+		self.__vector4 = bool(is_vector4)
+
+		self.__var = RegisterVar.__check_var_name(var_name)
+
+		self.__pp = bool(partial_precision)
+
+	@staticmethod
+	def __check_var_name(val):
+		if not val:
+			return None
+		if not isinstance(val, str):
+			raise TypeError("var_name has a wrong type. <str> expected, got: " + repr(val))
+		if val[0] not in set('_' + _str.ascii_letters):
+			raise ValueError(
+				"var_name need to start from either upper/lower-case latin character or underscore. Got: " + repr(val)
+			)
+		return val
+
+	@staticmethod
+	def __check_up_to(
+		val,  # type: Union[None, int, str]
+		reg_str,  # type: str
+		reg_literal,  # type: str
+		reg_i  # type: Optional[int]
+	):
+		if val is None:
+			return reg_i
+		if reg_i is None:
+			raise ValueError(
+				"Can't set registers_up_to for a register that doesn't have in index. "
+				"Register: {0}. Got: {1}".format(reg_str, repr(val))
+			)
+		assert isinstance(reg_i, int)
+		if not isinstance(val, (int, str)):
+			raise TypeError(
+				"registers_up_to has a wrong type. Expected: (string) name or (int) index of the last register taken. Got: " +
+				repr(val)
+			)
+		if isinstance(val, str):
+			if not val.startswith(reg_literal):
+				raise ValueError(
+					"Can't set registers_up_to for {0} with different register type: {1}".format(
+						reg_str, repr(val)
+					)
+				)
+			val_id = val[len(reg_literal):]
+			if not val_id:
+				raise ValueError(
+					"Can't set registers_up_to for {0} with no trailing register index: {1}".format(
+						reg_str, repr(val)
+					)
+				)
+			if val_id.strip('0123456789'):
+				raise ValueError(
+					"Can't set registers_up_to for {0} with an incorrectly named register: {1}".format(
+						reg_str, repr(val)
+					)
+				)
+			val = int(val_id)
+		assert isinstance(val, int)
+		if val < reg_i:
+			raise ValueError(
+				"Can't reduce registers_up_to for {0} from {1} to: {2}".format(reg_str, reg_i, val)
+			)
+		return val
+
+	@property
+	def shader_type(self):
+		return self.__shader_type
+
+	@property
+	def register(self):
+		return self.__reg_name
+
+	@property
+	def reg_type(self):
+		return self.__reg_type
+
+	@property
+	def reg_literal(self):
+		return self.__reg_literal
+
+	@property
+	def reg_index(self):
+		return self.__reg_i
+
+	@property
+	def regs_to(self):
+		"""
+		The index of the last register in a range taken by this variable.
+
+		Can be one of:
+			* None if register isn't indexed.
+			* Same as `reg_index` if only this register is taken
+			* Greater than `reg_index` if the variable represents a matrix.
+		"""
+		return self.__regs_to
+
+	@regs_to.setter
+	def regs_to(self, value):
+		self.__regs_to = RegisterVar.__check_up_to(
+			value,
+			self.__reg_name, self.__reg_literal, self.__reg_i
+		)
+
+	@property
+	def data_type(self):
+		return self.__reg_dt
+
+	@property
+	def is_vector4(self):
+		return self.__vector4
+
+	@is_vector4.setter
+	def is_vector4(self, value):
+		self.__vector4 = bool(value)
+
+	@property
+	def var_name(self):
+		return self.__var
+
+	@var_name.setter
+	def var_name(self, value):
+		self.__var = RegisterVar.__check_var_name(value)
+
+	@property
+	def partial_precision(self):
+		return self.__pp
+
+	@partial_precision.setter
+	def partial_precision(self, value):
+		self.__pp = bool(value)
+
+	def __repr__(self):
+		specifier = ' '.join([
+			spec for spec, cond in (
+				('PP', self.__pp),
+				(
+					self.__reg_dt.value if self.__reg_dt is not None else '',
+					self.__reg_dt is not None
+				),
+				('vector' if self.__vector4 else 'scalar', True),
+			) if cond
+		])
+		if specifier:
+			specifier = ' [{0}]'.format(specifier)
+		return '<RegisterVar {reg_lit}{reg_i}{specifier}{for_var}>'.format(
+			specifier=specifier,
+			reg_lit=self.__reg_literal,
+			reg_i=(
+				'' if self.__reg_i is None else (
+					str(self.__reg_i)
+					if self.__reg_i == self.__regs_to
+					else '{0}-{1}'.format(self.__reg_i, self.__regs_to)
+				)
+			),
+			for_var='' if not self.__var else " for '{0}'".format(self.__var)
+		)
 
 # endregion
 
@@ -609,6 +816,17 @@ def _detect_shader_ranges(
 	return shader_line_ranges(code_blocks, comment_ranges)
 
 # endregion
+
+
+def _extract_var_names(
+	comment_lines  # type: List[str]
+):
+	"""
+	Try to detect the original names of registers from the block of comments.
+	"""
+
+	# TODO
+	pass
 
 
 def _hlsl_code(
