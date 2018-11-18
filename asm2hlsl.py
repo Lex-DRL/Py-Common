@@ -818,6 +818,58 @@ def _detect_shader_ranges(
 # endregion
 
 
+_comment_prefix = '^\s*//[\s/]*'
+
+_re_comment_empty = _re.compile('^\s*//[\s/_-]*$')
+
+_re_params_start = _re.compile(
+	_comment_prefix + 'parameters?[\W_]*$',  # '// Parameters:'
+	flags=_re.IGNORECASE | _re.UNICODE
+)
+_re_var_decl = _re.compile(
+	_comment_prefix +
+	'('
+	'(?:'
+	'(?:bool|int|uint|dword|half|float|double|min10float|min16float|min12int|min16int|min16uint)'
+	'(?:[2-4](?:x[2-4])?)?'  # match vectors and matrices: half[2/3/4[x2/3/4]]
+	')|(?:'
+	'sampler(?:1D|2D|3D|CUBE)?'
+	')'
+	')\s+('
+	# match the var's name. Two cases: a single a-Z char or a longer name starting from [_a-zA-Z]:
+	'(?:[_a-zA-Z]\w+)|(?:[a-zA-Z])'
+	')(?:'
+	# optional array size:
+	'\s*\[(\d+)]'
+	')?'
+	# text of the optional comment-in-comment after the var declaration:
+	'[\s;]*(?://\s*'
+	'(.+)'
+	')?$'
+)
+_re_regs_start = _re.compile(
+	_comment_prefix + 'registers?[\W_]*$',  # '// Registers:'
+	flags=_re.IGNORECASE | _re.UNICODE
+)
+_re_regs_title = _re.compile(
+	_comment_prefix + 'names?[\s/]+reg(?:ister)?s?[\s/]+sizes?[-\s/_]*$',
+	flags=_re.IGNORECASE | _re.UNICODE
+)
+_re_regs_mapping = _re.compile(
+	_comment_prefix +
+	'('
+	# variable's name:
+	'(?:[_a-zA-Z]\w+)|(?:[a-zA-Z])'
+	')\s+('
+	# register:
+	'[cibs][0-9]+'
+	')(?:'
+	# optional size of the variable:
+	'\s+([0-9]+)'
+	')?[-\s_/]*$'
+)
+
+
 def _extract_var_names(
 	comment_lines  # type: List[str]
 ):
