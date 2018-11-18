@@ -27,6 +27,7 @@ from pprint import pprint as pp
 import os as _os
 import string as _str
 import re as _re
+from itertools import izip as _izip
 from collections import namedtuple as _namedtuple
 
 _str_t = (str, unicode)
@@ -400,6 +401,41 @@ class RegisterVar(object):
 			for_var='' if not self.__var else " for '{0}'".format(self.__var)
 		)
 
+
+class DeclaredVar(object):
+	"""
+	Extracted from a preceding comment block.
+	"""
+	def __init__(
+		self,
+		name,  # type: Optional[str]
+		array_size=None,  # type: Optional[int]
+		type_str=None,  # type: Optional[str]
+		comment=None,  # type: Optional[Union[str, unicode]]
+		register=None,  # type: Optional[str]
+		regs_num=None  # type: Optional[int]
+	):
+		super(DeclaredVar, self).__init__()
+
+		def cleaner_str(val):
+			return str(val) if val else None
+
+		self.name = cleaner_str(name)
+		self.array_size = array_size  # type: int
+		self.type_str = cleaner_str(type_str)
+		self.comment = comment  # type: Optional[Union[str, unicode]]
+		self.register = cleaner_str(register)
+		self.regs_num = regs_num  # type: Optional[int]
+
+	def __repr__(self):
+		return '<DeclaredVar: {tp} {nm}{arr}{reg}{comm}>'.format(
+			tp=self.type_str if self.type_str else '??',
+			nm=self.name if self.name else '????',
+			arr='' if self.array_size is None else '[{0}]'.format(self.array_size),
+			reg=' ({0})'.format(self.register) if self.register else '',
+			comm=' //' if self.comment else ''
+		)
+
 # endregion
 
 
@@ -419,7 +455,7 @@ out_ext = '.hlsl'
 # endregion
 
 
-# region Functions splitting the liner lines list to a bunch of separate shader blocks
+# region Functions splitting the lines list to a bunch of separate shader blocks
 
 def _classify_line(
 	line  # type: Union[str, unicode]
@@ -818,6 +854,8 @@ def _detect_shader_ranges(
 # endregion
 
 
+# region Extract variable-to-register mappings from the preceding comment lines
+
 _comment_prefix = '^\s*//[\s/]*'
 
 _re_comment_empty = _re.compile('^\s*//[\s/_-]*$')
@@ -871,14 +909,209 @@ _re_regs_mapping = _re.compile(
 
 
 def _extract_var_names(
-	comment_lines  # type: List[str]
+	comment_lines  # type: List[Union[str, unicode]]
 ):
 	"""
 	Try to detect the original names of registers from the block of comments.
+
+	:return:
+		* list of detected mappings
+		* modified comment_lines list, with all used mappings removed
 	"""
 
-	# TODO
-	pass
+	vars_list = list()  # type: List[DeclaredVar]
+
+	if not comment_lines:
+		return vars_list, comment_lines
+
+	def first_true_index(
+		values  # type: Iterable
+	):
+		"""
+		Find the index of a first item which value is `True` when converted to `bool`.
+		"""
+		for i, val in enumerate(values):
+			if val:
+				return i
+		return -1
+
+	def last_true_index(
+		values  # type: Union[List, Tuple]
+	):
+		for i in reversed(xrange(len(values))):
+			if values[i]:
+				return i
+		return -1
+
+	# first, extract the block of param definitions:
+	matches = tuple(
+		_re_var_decl.match(l) for l in comment_lines
+	)
+	assert matches
+	start_line = first_true_index(matches)
+	if start_line > -1:
+		# we already have all the vars' data so we're free to filter matches out,
+		# at the same time splitting the block to a "pre-matches" and "whatever is left" part:
+		comment_lines = [  # first, let's mark those lines we need to keep
+			(not is_var, l) for is_var, l
+			in _izip(matches, comment_lines)
+		]  # type: List[Tuple[bool, str]]
+		# and now let's split and filter:
+		pre_block = [
+			l for is_l, l in comment_lines[:start_line] if is_l
+		]  # type: List[Union[str, unicode]]
+		comment_lines = [
+			l for is_l, l in comment_lines[start_line:] if is_l
+		]  # type: List[Union[str, unicode]]
+
+		# remove any lines related to the block from the pre-block and combine it with left comment_lines:
+		if pre_block:
+			# if we remove trailing comment lines and the "Parameters:" line,
+			# which is the last line we need to keep:
+			start_line = last_true_index([
+				not(_re_comment_empty.match(l) or _re_params_start.match(l))
+				for l in pre_block
+			])
+			if start_line > -1:
+				pre_block = pre_block[:start_line+1]
+				comment_lines = pre_block + comment_lines  # type: List[Union[str, unicode]]
+
+		vars_list = [
+			DeclaredVar(
+				nm,
+				int(sz) if sz else None,
+				tp_str,
+				c
+			) for tp_str, nm, sz, c in (
+				v.groups() for v in matches if v
+			)
+		]
+
+	# now, let's try to detect shaderVar-to-register mappings:
+	shared = type('Shared', (object,), dict())
+	shared.found_title = False
+	shared.found_names = False
+	shared.stage = 0
+	shared.start = -1  # block first line index
+	shared.end = -1  # the 1st line after the block
+	shared.perfect_match_from = -1
+
+	def match_as_reg_mapping(
+		line,  # type: Union[str, unicode]
+		line_i  # type: int
+	):
+		"""
+		A function that generates a match object for lines
+		inside the shaderVar-to-register mapping block.
+
+		This cannot be done as a simple expression in list comprehension
+		because this function needs to remember which stage we are at:
+		whether we have already entered and if we have got out of this block.
+
+		Stages:
+			* 0 - haven't entered the block yet
+			* 1 - in block
+			* 2 - left the block already
+		"""
+
+		stage = shared.stage
+		if stage > 1:
+			# we have already passed the block
+			return None
+		if not line or _re_comment_empty.match(line):
+			# just skip empty lines
+			return None
+		if _re_regs_start.match(line):
+			if stage < 1:
+				shared.stage = 1
+				shared.start = line_i
+			shared.found_title = True
+			return None
+		if _re_regs_title.match(line):
+			if stage < 1:
+				shared.stage = 1
+				shared.start = line_i
+			shared.found_names = True
+			return None
+
+		match = _re_regs_mapping.match(line)
+		if match:
+			if shared.perfect_match_from < 0:
+				if shared.found_title and shared.found_names:
+					shared.perfect_match_from = line_i
+			if stage < 1:
+				shared.stage = 1
+				shared.start = line_i
+			return match
+
+		# we get here only in one case: it's an arbitrary
+		# non-empty comment which doesn't match the mapping pattern.
+		if shared.stage == 1:
+			shared.stage = 2
+			shared.end = line_i
+		return None
+
+	matches = tuple(match_as_reg_mapping(l, i) for i, l in enumerate(comment_lines))
+	assert matches
+	assert shared.perfect_match_from >= shared.start
+
+	if shared.perfect_match_from > -1 and any(matches[shared.start:shared.perfect_match_from]):
+		# crop the false start
+		shared.start = shared.perfect_match_from
+	if shared.stage == 1:
+		# the last line is also the end of block, we haven't exited it yet.
+		shared.end = len(comment_lines) + 1
+	if shared.start > shared.end:
+		shared.start = shared.end
+
+	if shared.start < 0 or shared.end < 0 or not any(matches[shared.start:shared.end]):
+		# no mappings found, return whatever vars_list we already have detected (if any)
+		return vars_list, comment_lines
+
+	# cleanup any false matches me may have:
+	matches = tuple(
+		(m if shared.start <= i < shared.end else None)
+		for i, m in enumerate(matches)
+	)
+	comment_lines = [
+		l for i, (do_m, l) in enumerate(_izip(matches, comment_lines))
+		if not do_m and (i < shared.start or i >= shared.end)
+	]  # type: List[Union[str, unicode]]
+	matches = (m.groups() for m in matches if m)
+
+	if not vars_list:
+		# we haven't found any declarations, let's at least return mappings:
+		vars_list = [
+			DeclaredVar(
+				nm,
+				register=reg,
+				regs_num=int(sz) if sz else None
+			) for nm, reg, sz in matches
+		]
+		return vars_list, comment_lines
+
+	# we have found both declarations and mappings.
+	# we need to combine them
+	vars_dict = {var.name: var for var in vars_list}  # type: Dict[str, DeclaredVar]
+
+	def get_var(
+		name  # type: str
+	):
+		if name in vars_dict:
+			return vars_dict[name]
+		new_var = DeclaredVar(name)
+		vars_list.append(new_var)
+		vars_dict[name] = new_var
+		return new_var
+
+	for nm, reg, sz in matches:
+		var = get_var(nm)
+		var.register = reg
+		var.regs_num = int(sz) if sz else None
+
+	return vars_list, comment_lines
+
+# endregion
 
 
 def _hlsl_code(
