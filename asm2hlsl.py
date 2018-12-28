@@ -14,13 +14,8 @@ except ImportError as er_enum:
 	if py_ver[0] >= 3 and py_ver[1] >= 4:  # 3.4+, but somehow enums don't exist
 		raise ImportError(er_enum.message + " (though Python version is higher than 3.4)")
 
-	pip_args = ['install', '--upgrade', 'enum34']
-	try:
-		import pip
-		pip.main(pip_args)
-	except AttributeError:
-		from pip import _internal as pip_internal
-		pip_internal.main(pip_args)
+	from modules import pip_install as _inst
+	_inst('enum34')
 	from enum import Enum
 
 from pprint import pprint as pp
