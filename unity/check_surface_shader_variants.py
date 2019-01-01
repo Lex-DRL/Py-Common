@@ -35,7 +35,9 @@ class Check(object):
 		self.__set_filepath(value)
 
 	def read(self, strip_newline_character=True):
-		self.__lines = fs.read_file_lines(self.file_path, strip_newline_character)
+		file_path = self.file_path
+		encoding = fs.detect_file_encoding(file_path, mode=1)[0]
+		self.__lines = fs.read_file_lines(file_path, encoding, strip_newline_character)
 		return self
 
 	def lines(self):

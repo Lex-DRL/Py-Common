@@ -3,6 +3,7 @@ __author__ = 'DRL'
 try:
 	# support type hints:
 	from typing import *
+	unicode = str  # fix errors in Python 3
 except ImportError:
 	pass
 
@@ -484,50 +485,9 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 
 	raise errors.UnknownObjectError(path)
 
-
 # ---------------------------------------------------------
 
-# OLD:
 
-# def clean_path_for(path='', tofile=False, tofolder=False, force_file_delete=False):
-#	"""
-#	This function forces the specified path to become either file or folder,
-#	depending on which option is selected ('tofile' or 'tofolder' parameters set to True).
-#	If the specified path is already object of a specified type or a link to it, nothing happens.
-#	If not, the path is cleared for file creation (in file mode) or replaced with the folder.
-#	"""
-#	if path == '':
-#		msg = "\nThe path isn't specified."
-#		wrn.warn(msg, RuntimeWarning, stacklevel=2)
-#		return
-#	if not (tofile or tofolder):
-#		msg = '\nNot "isfile" nor "isfolder" parameter set as True in the call for the clean_path_for function.'
-#		wrn.warn(msg, RuntimeWarning, stacklevel=2)
-#		return
-#
-#	# <tofolder> mode
-# 	if tofolder:
-# 		if os.path.isfile(path) and not os.path.isdir(path):
-# 			os.remove(path)
-# 		if not os.path.isdir(path):
-# 			os.makedirs(path)
-# 		return
-#
-# 	# now we're guaranteed in <tofile> mode
-# 	if os.path.isdir(path):
-# 		if os.path.islink(path):
-# 			os.remove(path)
-# 		else:
-# 			sh.rmtree(path)
-# 	elif os.path.isfile(path) and force_file_delete:
-# 		os.remove(path)
-# 	# make sure full parent directories path is created:
-# 	root_path = os.path.split(path)[0]
-# 	if root_path:
-# 		clean_path_for(root_path, tofolder=True)
-
-
-# path = r'E:\1-Projects\Maya\ssTrapsSrc\3delight\_ToRender\textures'
 def empty_dir(path, overwrite=0):
 	path = clean_path_for_folder(path, overwrite)
 	if not os.path.exists(path):
@@ -541,89 +501,6 @@ def empty_dir(path, overwrite=0):
 			sh.rmtree(filepath)
 		else:
 			os.remove(filepath)
-
-
-def do_with_file(path, function, mode='r', opening_function=None):
-	"""
-	Performs something with a file at the given path with the given function.
-	Also performs the checks to make sure file is accessable.
-
-	:param path: string path to a file
-	:param function: function taking exactly 1 argument (the opened file)
-	:param mode: the mode of how file should be opened
-	:param opening_function: extra-function defining the way to perform the actual
-		open() command. This function takes exactly 2 arguments.
-	:return: the result of the given function's execution
-	"""
-	def check_func_arg(func, number_of_arguments):
-		import inspect
-		if not hasattr(func, '__call__'):
-			raise Exception('Function expected. Got: ' + repr(func))
-
-		num_args = len(inspect.getargspec(func).args)
-		if num_args != number_of_arguments:
-			raise Exception(
-				"Provided function has wrong number of arguments. Expected 1, got: " +
-				str(num_args)
-			)
-
-	check_func_arg(function, 1)
-	if opening_function is None:
-		if 'r' in mode:
-			error_if.path_not_readable(path)
-		if 'w' in mode or 'a' in mode or '+' in mode:
-			error_if.path_not_writeable(path)
-		opening_function = lambda p, m: open(p, m)
-	else:
-		check_func_arg(opening_function, 2)
-
-	try:
-		with opening_function(path, mode) as fl:
-			# fl = open(path)
-			res = function(fl)
-	except IOError as e:
-		raise Exception('Error reading file "{0}":\n{1}'.format(path, e))
-	return res
-
-
-def read_file_lines(path, strip_newline_character=True):
-	"""
-	High-level function for reading file contents as list of lines.
-	Automatically detects file encoding and handles it (including utf-8).
-
-	:type path: str|unicode
-	:param strip_newline_character:
-		Whether to remove trailing newline character at each line
-	:rtype: list[str|unicode]
-	"""
-	import codecs
-	import chardet
-	# path = r'e:\1-Projects\0-Common_Code\Sources\Unity\DRL\Shaders\AIVIK-U5\Y-Fog\Volumetric\tmp.txt'
-	# path = r'e:\1-Projects\0-Common_Code\Sources\Unity\DRL\Shaders\AIVIK-U5\Y-Fog\Volumetric\MultiTex-Diffuse-x4-gen.shader'
-
-	# get encoding:
-	fl_bytes = min(32, os.path.getsize(path))
-	raw = do_with_file(path, lambda x: x.read(fl_bytes), 'rb')
-	if raw.startswith(codecs.BOM_UTF8):
-		encoding = 'utf-8-sig'
-	else:
-		encoding = chardet.detect(raw)['encoding']
-
-	read_args = [
-		path,
-		lambda f: f.readlines(),
-	]
-	if not encoding.startswith('ascii'):
-		read_args += [
-			'rb',
-			lambda p, m: codecs.open(p, m, encoding=encoding)
-		]
-	lines = do_with_file(*read_args)
-
-	if strip_newline_character:
-		lines = [l.rstrip('\n') for l in lines]
-
-	return lines
 
 
 def detect_file_encoding(
@@ -794,3 +671,32 @@ def detect_file_encoding(
 
 	return _mode_unicode_dammit(raw)
 
+
+def read_file_lines(
+	file_path,  # type: Union[str, unicode]
+	encoding=None,  # type: Optional[str]
+	strip_newline_char=True
+):
+	"""
+	High-level function reading a file at a given path (in a given encoding) as list of lines.
+
+	If no encoding provided, read the file as raw strings.
+	"""
+	if not(
+		isinstance(encoding, (str, unicode)) and encoding
+	):
+		# no encoding is provided
+		with open(file_path, 'rt') as fl:
+			if strip_newline_char:
+				lines = [l.rstrip('\r\n') for l in fl]  # type: List[str]
+			else:
+				lines = list(fl)  # type: List[str]
+	else:
+		import io		# we do have an encoding
+		with io.open(file_path, 'rt', encoding=encoding) as fl:
+			if strip_newline_char:
+				lines = [l.rstrip('\r\n') for l in fl]  # type: List[unicode]
+			else:
+				lines = list(fl)  # type: List[unicode]
+
+	return lines
