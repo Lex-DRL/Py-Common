@@ -3,17 +3,21 @@ __author__ = 'DRL'
 try:
 	# support type hints in Python 3:
 	from typing import *
+	unicode = str  # fix errors in Python 3
 except ImportError:
 	pass
 
 
 def pip_install(
 	module_names,  # type: Union[str, unicode, Iterable[Union[str, unicode]]]
-	upgrade=True
+	upgrade=True,
+	force_reinstall=False
 ):
 	"""
 	A wrapper function, installing a module(s) via PIP in a convenient way,
 	regardless of the Python and PIP version.
+
+	https://pip.pypa.io/en/stable/installing/
 
 	:param module_names:
 		Either an iterable of strings or a single string with module names
@@ -39,7 +43,13 @@ def pip_install(
 	]  # type: List[Union[str, unicode]]
 	module_names = filter(None, module_names)
 
-	pip_args = ['install', '--upgrade'] if upgrade else ['install']
+	pip_args = [
+		arg for arg, do_arg in (
+			('install', True),
+			('--upgrade', upgrade),
+			('--force-reinstall', force_reinstall),
+		) if do_arg
+	]
 	pip_args += module_names
 
 	try:
