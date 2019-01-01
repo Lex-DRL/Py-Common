@@ -7,12 +7,14 @@ except ImportError:
 	pass
 
 import os
+from os import path as _pth
 import shutil as sh
 
 import drl_common.errors as err
 from drl_common import utils
 from . import errors, error_if, file_time
 from .. import is_maya as _im
+from modules import pip_install as _inst
 
 
 _is_maya = _im.is_maya()
@@ -622,3 +624,173 @@ def read_file_lines(path, strip_newline_character=True):
 		lines = [l.rstrip('\n') for l in lines]
 
 	return lines
+
+
+def detect_file_encoding(
+	file_path,  # type: Union[str, unicode]
+	limit=64*1024,  # 64 Kb
+	mode=4
+):
+	"""
+
+	:param file_path:
+	:param limit: max amount of bytes read from the file. If non-int or 0 and less, read it entirely .
+	:param mode:
+		In all modes, we try to find a BOM first. If it's found, detect the corresponding UTF-X encoding from it.
+		Otherwise, proceed to the trial-and-error-based detection:
+
+		*
+			0 - don't use any external modules.
+			`ascii` or `utf-8` (with 1.0 precision) if any detected,
+			the default system's codepage (with 0.0 precision) otherwise.
+		* 1 - use `chardet` only
+		* 2 - use `chardet` **WITH** `UnicodeDammit` from `beautifulsoup4`.
+		*
+			3 and 4:
+
+			First, try without external modules. If no success, try with them:
+
+			`chardet`-only or `chardet` + `UnicodeDammit`, respectively.
+	:return:
+		* `str` detected encoding
+		* `float` how sure the detector is:
+			* in no-modules mode, 1.0 on success, 0.0 if default returned
+			* in chardet-mode, the actual 'sureness' of detector
+			* in UnicodeDammit-mode, always excactly 0.5
+	"""
+	# file_path = r'p:\0-Unity\builtin_shaders\CGIncludes\AutoLight.cginc'
+	import codecs
+
+	# first, try to detect BOM.
+	# an extension of: https://stackoverflow.com/questions/13590749/reading-unicode-file-data-with-bom-chars-in-python
+	first_bytes = min(32, _pth.getsize(file_path))  # int for now
+	with open(file_path, 'rb') as fl_first:
+		first_bytes = fl_first.read(first_bytes)  # str now
+	for bom, enc in (
+		(codecs.BOM_UTF32_BE, 'utf-32-be'),
+		(codecs.BOM_UTF32_LE, 'utf-32-le'),
+		(codecs.BOM_UTF8, 'utf-8-sig'),
+		(codecs.BOM_UTF16_BE, 'utf-16-be'),
+		(codecs.BOM_UTF16_LE, 'utf-16-le'),
+	):
+		if first_bytes.startswith(bom):
+			return enc, 1.0
+	del first_bytes
+
+	if isinstance(mode, float):
+		mode = int(mode)
+	if not isinstance(mode, int):
+		try:
+			mode = int(mode)
+		except:
+			mode = int(bool(mode))
+	if mode < 1:
+		mode = 0
+
+	if not (isinstance(limit, int) and limit > 0):
+		limit = None
+
+	raw = ''
+	with open(file_path, 'rb') as fl:
+		raw = fl.read() if limit is None else fl.read(limit)
+
+	def _mode_no_modules(bytes_string):
+		"""
+		The simplest mode.
+		It has no dependencies on external modules, but can only differentiate
+		ascii from UTF and assumes the default codepage if neither of those is detected.
+
+		Based on: https://unicodebook.readthedocs.io/guess_encoding.html
+		"""
+		def is_ascii():
+			try:
+				# print(raw.decode('koi8-r')[1181:1230])
+				# print(raw.decode('cp1252')[1181:1230])
+				# print(raw.decode('ascii')[1181:1230])
+				bytes_string.decode('ascii')
+			except UnicodeDecodeError:
+				return False
+			else:
+				return True
+
+		def is_utf8_strict():
+			try:
+				# print(raw.decode('koi8-r')[1181:1230])
+				# print(raw.decode('cp1252')[1181:1230])
+				# print(raw.decode('ascii')[1181:1230])
+				# print(raw.decode('utf-8')[1181:1230])
+				# print(raw.decode('ISO-8859-1')[1181:1230])
+				# print(b'\xED\xB2\x80'.decode('utf-8'))
+				bytes_string.decode('utf-8')
+			except UnicodeDecodeError:
+				return False
+			else:
+				for ch in bytes_string:
+					if 0xD800 <= ord(ch) <= 0xDFFF:
+						return False
+				return True
+
+		if is_ascii():
+			return 'ascii'
+		if is_utf8_strict():
+			return 'utf-8'
+		return ''
+
+	def _mode_chardet(bytes_string):
+		import chardet
+		from chardet.universaldetector import UniversalDetector
+		detect = chardet.detect(bytes_string)
+		res_enc = detect['encoding']  # type: str
+		try:
+			res_enc = UniversalDetector.ISO_WIN_MAP[res_enc].lower()  # type: str
+		except KeyError:
+			enc_clean = res_enc.lower()
+			try:
+				res_enc = UniversalDetector.ISO_WIN_MAP[enc_clean].lower()  # type: str
+			except KeyError:
+				try:
+					res_enc = UniversalDetector.ISO_WIN_MAP[enc_clean.replace('_', '-')].lower()  # type: str
+				except KeyError:
+					pass
+		res_precision = detect['confidence']  # type: float
+		return res_enc, res_precision
+
+	def _mode_unicode_dammit(bytes_string):
+		# u'<p>I just \u201clove\u201d Microsoft Word\u2019s smart quotes</p>'
+		from bs4 import UnicodeDammit
+		detected = UnicodeDammit(bytes_string)
+		res_enc = detected.original_encoding  # type: str
+		return res_enc, 0.5
+
+	if mode == 0 or mode > 2:
+		# try to detect using no external modules:
+		detected = _mode_no_modules(raw)
+		if detected:
+			return detected, 1.0
+		# we had no success. The next behavior depends on the mode:
+		if mode == 0:
+			# use the default system's encoding:
+			import locale
+			detected = locale.getpreferredencoding()  # type: str
+			return detected, 0.0
+		# continue detecting with the help of external modules:
+		mode = mode - 2  # 3 -> 1; 4+ -> 2
+
+	try:
+		import chardet
+	except ImportError as er_imp:
+		_inst('chardet')
+
+	if mode == 1:
+		# actually, also mode 3 if no-modules approach didn't do the job
+		return _mode_chardet(raw)
+
+	# the 'UnicodeDammit+chardet' mode if we got here
+
+	try:
+		from bs4 import UnicodeDammit
+	except ImportError as er_imp:
+		_inst('beautifulsoup4')
+
+	return _mode_unicode_dammit(raw)
+
