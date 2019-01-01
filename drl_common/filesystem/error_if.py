@@ -10,21 +10,21 @@ def not_existing_path(path):
 	from . import to_unix_path
 	path = to_unix_path(path)
 	if not os.path.exists(path):
-		raise errors.NoFileOrDirError(path)
+		raise errors.NotExist(path)
 	return path
 
 
 def not_existing_dir(path):
 	path = not_existing_path(path)
 	if not os.path.isdir(path):
-		raise errors.NotDirError(path)
+		raise errors.NotDir(path)
 	return path
 
 
 def not_existing_file(path):
 	path = not_existing_path(path)
 	if not os.path.isfile(path):
-		raise errors.NotFileError(path)
+		raise errors.NotFile(path)
 	return path
 
 

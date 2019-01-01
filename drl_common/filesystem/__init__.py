@@ -306,9 +306,9 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 	:raises:
 		* NotStringError - path isn't a string at all
 		* EmptyStringError - path is empty
-		* NoFileOrDirError - the path starts with a disk which doesn't exist.
-		* UnknownObjectError - any of breadcrumbs is not a folder nor a file.
-		* ParentFolderIsFileError - a breadcrumb is a file, and overwrite is disabled.
+		* NotExist - the path starts with a disk which doesn't exist.
+		* UnknownObject - any of breadcrumbs is not a folder nor a file.
+		* ParentFolderIsFile - a breadcrumb is a file, and overwrite is disabled.
 	"""
 	# path = r'e:\1-Projects\0-Common_Code\qqq\\'
 	path = to_unix_path(path, trailing_slash=0)
@@ -331,7 +331,7 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 	breadcrumbs = breadcrumbs[:-1]
 	checked += breadcrumbs.pop(0)
 	if checked.endswith(':') and not os.path.exists(checked):
-		raise errors.NoFileOrDirError(checked, "No such disk found in system")
+		raise errors.NotExist(checked, "No such disk found in system")
 
 	# we're sure at least the disk exists
 
@@ -351,14 +351,14 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 		if os.path.isdir(item):
 			return
 		if not os.path.isfile(item):
-			raise errors.UnknownObjectError(item)
+			raise errors.UnknownObject(item)
 		# we're facing a file (not a dir):
 
 		if __is_overwrite_enabled(overwrite, item):
 			os.remove(item)
 			os.makedirs(item)
 			return
-		raise errors.ParentFolderIsFileError(path, item, overwrite)
+		raise errors.ParentFolderIsFile(path, item, overwrite)
 
 	__check_item(checked)  # we already have the beginning to check
 	while breadcrumbs:
@@ -406,14 +406,14 @@ def clean_path_for_folder(path, overwrite=0):
 		return path
 
 	if not os.path.isfile(path):
-		raise errors.UnknownObjectError(path)
+		raise errors.UnknownObject(path)
 
 	if __is_overwrite_enabled(overwrite, path):
 		os.remove(path)
 		os.makedirs(path)
 		return path
 
-	raise errors.FileAlreadyExistError(path, overwrite)
+	raise errors.FileAlreadyExist(path, overwrite)
 
 
 def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
@@ -481,9 +481,9 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 		if overwritten:
 			sh.rmtree(path)
 			return path, overwritten, user_cancelled
-		raise errors.FileAlreadyExistError(path, overwrite_folders, 'Folder already exist at the file path')
+		raise errors.FileAlreadyExist(path, overwrite_folders, 'Folder already exist at the file path')
 
-	raise errors.UnknownObjectError(path)
+	raise errors.UnknownObject(path)
 
 # ---------------------------------------------------------
 
