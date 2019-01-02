@@ -189,7 +189,7 @@ class UnknownObject(_FilesystemBaseError):
 		super(UnknownObject, self).__init__(errno.ENOSYS, filename, err_str)
 
 
-class _FileOverwriteBaseError(_FilesystemBaseError):
+class PathAlreadyExist(_FilesystemBaseError):
 	"""
 	Unsuccessful attempt to overwrite a file/folder.
 
@@ -214,11 +214,11 @@ class _FileOverwriteBaseError(_FilesystemBaseError):
 			err_str = 'Path already exists'
 		if not (overwrite is None):
 			err_str += ' (overwrite=<{0}>)'.format(overwrite)
-		super(_FileOverwriteBaseError, self).__init__(errno.EEXIST, filename, err_str)
+		super(PathAlreadyExist, self).__init__(errno.EEXIST, filename, err_str)
 		self.overwrite = overwrite
 
 
-class FileAlreadyExist(_FileOverwriteBaseError):
+class FileAlreadyExist(PathAlreadyExist):
 	"""
 	An attempt to create/write a file that already exist.
 
@@ -242,7 +242,7 @@ class FileAlreadyExist(_FileOverwriteBaseError):
 		super(FileAlreadyExist, self).__init__(filename, overwrite, err_str)
 
 
-class ParentFolderIsFile(_FileOverwriteBaseError):
+class ParentFolderIsFile(PathAlreadyExist):
 	"""
 	An attempt to call a file while one of it's breadcrumb folders is a file itself.
 

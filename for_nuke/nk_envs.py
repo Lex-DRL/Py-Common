@@ -24,24 +24,24 @@ default_nuke_exe = 'Nuke8.0.exe'
 
 def get_nuke_exe_path(full_path='', nuke_dir='', nuke_exe=''):
 	if isinstance(full_path, str_types) and full_path:
-		fs.error_if.not_existing_file(full_path)
+		fs.error_check.file_exists(full_path)
 		return full_path.replace('/', '\\')
 
 	if not (isinstance(nuke_dir, str_types) and nuke_dir):
 		nuke_dir = os.getenv(env_nuke_path, default_nuke_dir)
-	fs.error_if.not_existing_dir(nuke_dir)
+	fs.error_check.dir_exists(nuke_dir)
 
 	if not (isinstance(nuke_exe, str_types) and nuke_exe):
 		nuke_exe = os.getenv(env_nuke_exe, default_nuke_exe)
 	err.NotStringError(nuke_exe, 'nuke_exe').raise_if_needed()
 	nuke_exe = os.path.join(nuke_dir, nuke_exe).replace('/', '\\')
-	fs.error_if.not_existing_file(nuke_exe)
+	fs.error_check.file_exists(nuke_exe)
 	return nuke_exe
 
 
 def __do_return_full_path(full_path, check_f=None):
 	if check_f is None:
-		check_f = fs.error_if.path_not_readable
+		check_f = fs.error_check.file_readable
 	if isinstance(full_path, str_types):
 		full_path = full_path.replace('/', '\\')
 		if '\\' in full_path:
@@ -61,12 +61,12 @@ def get_nk_script_path(full_path='', nk_dir='', nk_filename=''):
 
 	if not (isinstance(nk_dir, str_types) and nk_dir):
 		nk_dir = os.getenv(env_nk_dir, default_nk_dir)
-	fs.error_if.not_existing_dir(nk_dir)
+	fs.error_check.dir_exists(nk_dir)
 
 	if not (isinstance(nk_filename, str_types) and nk_filename):
 		nk_filename = default_nk_script
 	nk_filename = os.path.join(nk_dir, nk_filename).replace('\\', '/')
-	fs.error_if.path_not_readable(nk_filename)
+	fs.error_check.file_readable(nk_filename)
 	return nk_filename
 
 
@@ -81,12 +81,12 @@ def get_py_script_path(full_path='', py_dir='', py_filename=''):
 
 	if not (isinstance(py_dir, str_types) and py_dir):
 		py_dir = os.getenv(env_py_dir, default_py_dir)
-	fs.error_if.not_existing_dir(py_dir)
+	fs.error_check.dir_exists(py_dir)
 
 	if not (isinstance(py_filename, str_types) and py_filename):
 		py_filename = default_py_script
 	py_filename = os.path.join(py_dir, py_filename).replace('/', '\\')
-	fs.error_if.path_not_readable(py_filename)
+	fs.error_check.file_readable(py_filename)
 	return py_filename
 
 
@@ -94,9 +94,9 @@ def get_src_tex(src_tex):
 	if not src_tex:
 		raise _err.NoPathError('source texture')
 	if isinstance(src_tex, (str, unicode)):
-		fs.error_if.path_not_readable(src_tex)
+		fs.error_check.file_readable(src_tex)
 		return src_tex.replace('\\', '/')
-	fs.error_if.path_not_readable(src_tex)
+	fs.error_check.file_readable(src_tex)
 	return src_tex.replace('\\', '/')
 
 

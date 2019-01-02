@@ -91,7 +91,7 @@ class DataItem(object):
 
 def get_data(f):
 	# f = 'e:\\1-Projects\\2-Arena\\UnityProject\\UnityProject--2016Apr27-204708.xml'
-	fs.error_if.path_not_readable(f)
+	fs.error_check.file_readable(f)
 	root = ElementTree.parse(f)
 	used_assets = root.getroot().find('UsedAssets/All')
 	res = []

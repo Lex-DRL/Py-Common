@@ -13,7 +13,7 @@ import shutil as sh
 
 import drl_common.errors as err
 from drl_common import utils
-from . import errors, error_if, file_time
+from . import errors, error_check, file_time
 from .. import is_maya as _im
 from modules import pip_install as _inst
 
@@ -540,9 +540,13 @@ def detect_file_encoding(
 
 	# first, try to detect BOM.
 	# an extension of: https://stackoverflow.com/questions/13590749/reading-unicode-file-data-with-bom-chars-in-python
-	first_bytes = min(32, _pth.getsize(file_path))  # int for now
-	with open(file_path, 'rb') as fl_first:
-		first_bytes = fl_first.read(first_bytes)  # str now
+	error_check.file_readable(file_path)
+	try:
+		first_bytes = min(32, _pth.getsize(file_path))  # int for now
+		with open(file_path, 'rb') as fl_first:
+			first_bytes = fl_first.read(first_bytes)  # str now
+	except IOError:
+		raise errors.NotReadable(file_path)
 	for bom, enc in (
 		(codecs.BOM_UTF32_BE, 'utf-32-be'),
 		(codecs.BOM_UTF32_LE, 'utf-32-le'),
@@ -568,8 +572,11 @@ def detect_file_encoding(
 		limit = None
 
 	raw = ''
-	with open(file_path, 'rb') as fl:
-		raw = fl.read() if limit is None else fl.read(limit)
+	try:
+		with open(file_path, 'rb') as fl:
+			raw = fl.read() if limit is None else fl.read(limit)
+	except IOError:
+			raise errors.NotReadable(file_path)
 
 	def _mode_no_modules(bytes_string):
 		"""
@@ -651,7 +658,7 @@ def detect_file_encoding(
 			detected = locale.getpreferredencoding()  # type: str
 			return detected, 0.0
 		# continue detecting with the help of external modules:
-		mode = mode - 2  # 3 -> 1; 4+ -> 2
+		mode = mode - 2  # 3 -> 1; 4 -> 2
 
 	try:
 		import chardet
@@ -680,23 +687,30 @@ def read_file_lines(
 	"""
 	High-level function reading a file at a given path (in a given encoding) as list of lines.
 
-	If no encoding provided, read the file as raw strings.
+	If no encoding provided, read the file as raw (single-byte) strings.
 	"""
-	if not(
-		isinstance(encoding, (str, unicode)) and encoding
-	):
-		# no encoding is provided
-		with open(file_path, 'rt') as fl:
-			if strip_newline_char:
-				lines = [l.rstrip('\r\n') for l in fl]  # type: List[str]
-			else:
-				lines = list(fl)  # type: List[str]
+	error_check.file_readable(file_path)
+
+	if isinstance(encoding, (str, unicode)) and encoding:
+		# we do have an encoding
+		import io
+		try:
+			with io.open(file_path, 'rt', encoding=encoding) as fl:
+				if strip_newline_char:
+					lines = [l.rstrip('\r\n') for l in fl]  # type: List[unicode]
+				else:
+					lines = list(fl)  # type: List[unicode]
+		except IOError:
+			raise errors.NotReadable(file_path)
 	else:
-		import io		# we do have an encoding
-		with io.open(file_path, 'rt', encoding=encoding) as fl:
-			if strip_newline_char:
-				lines = [l.rstrip('\r\n') for l in fl]  # type: List[unicode]
-			else:
-				lines = list(fl)  # type: List[unicode]
+		# no encoding is provided
+		try:
+			with open(file_path, 'rt') as fl:
+				if strip_newline_char:
+					lines = [l.rstrip('\r\n') for l in fl]  # type: List[str]
+				else:
+					lines = list(fl)  # type: List[str]
+		except IOError:
+			raise errors.NotReadable(file_path)
 
 	return lines

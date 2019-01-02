@@ -89,7 +89,7 @@ class NukeProcessor(object):
 			item = _err_comm.NotStringError(
 				item, 'source texture'
 			).raise_if_needed_or_empty().replace('\\', '/')
-			return _fs.error_if.path_not_readable(item)
+			return _fs.error_check.file_readable(item)
 
 		self._src_tex = tuple(
 			(check_single_item(it) for it in src_tex)

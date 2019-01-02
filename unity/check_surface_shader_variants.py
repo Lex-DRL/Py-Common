@@ -22,7 +22,7 @@ class Check(object):
 	def __set_filepath(self, filepath):
 		if not isinstance(filepath, (str, unicode)):
 			raise Exception("String expected as <filepath>. Got: " + repr(filepath))
-		fs.error_if.path_not_readable(filepath)
+		fs.error_check.file_readable(filepath)
 		self.__filepath = filepath
 
 	@property
