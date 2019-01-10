@@ -1,19 +1,15 @@
 __author__ = 'DRL'
 
-try:
-	# support type hints:
-	from typing import *
-	unicode = str  # fix errors in Python 3
-except ImportError:
-	pass
-
 import os
 from os import path as _pth
 import shutil as sh
 
+from drl_common.py_2_3 import *
+_t = typing
+
 import drl_common.errors as err
 from drl_common import utils
-from . import errors, error_check, file_time
+from . import detect_encoding_modes, errors, error_check, file_time
 from .. import is_maya as _im
 from modules import pip_install as _inst
 
@@ -183,7 +179,7 @@ def __convert_path_slashes(path, wrong_slash='\\', right_slash='/', trailing_sla
 	if not path:
 		return ''
 
-	assert isinstance(path, (str, unicode))
+	assert isinstance(path, str_t)
 	path = path.replace(wrong_slash, right_slash)
 	if not (trailing_slash is None):
 		path = path.rstrip(right_slash)
@@ -215,7 +211,7 @@ def to_windows_path(path, trailing_slash=None, leading_slash=False):
 	return __convert_path_slashes(path, '/', '\\', trailing_slash, leading_slash)
 
 
-def to_unix_path(path, trailing_slash=None, leading_slash=0):
+def to_unix_path(path, trailing_slash=None, leading_slash=False):
 	"""
 	Ensures given path has unix-style slashes. ("\" -> "/")
 
@@ -223,16 +219,15 @@ def to_unix_path(path, trailing_slash=None, leading_slash=0):
 	:param trailing_slash:
 		Whether we need to ensure path has or lacks trailing slash:
 			*
-				None: (default) no check performed.
+				`None`: (default) no check performed.
 				Leave as is, just replace path slashes.
-			* False: Force-remove trailing slash
-			* True: Force-leave (single) trailing slash.
+			* `False`: Force-remove trailing slash
+			* `True`: Force-leave (single) trailing slash.
 	:type trailing_slash: bool|None
 	:param leading_slash:
 		The same for leading slash.
-		However, it's <0> (force-removed) by default.
+		However, it's `False` (force-removed) by default.
 	:type leading_slash: bool|None
-	:rtype: str|unicode
 	"""
 	return __convert_path_slashes(
 		path,
@@ -311,7 +306,7 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 		* ParentFolderIsFile - a breadcrumb is a file, and overwrite is disabled.
 	"""
 	# path = r'e:\1-Projects\0-Common_Code\qqq\\'
-	path = to_unix_path(path, trailing_slash=0)
+	path = to_unix_path(path, trailing_slash=False)
 	err.NotStringError(path, 'path').raise_if_needed_or_empty()
 	if not path.rstrip('/'):
 		return path
@@ -346,7 +341,7 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 		if not os.path.exists(item):
 			os.makedirs(item)
 			return
-		#path already exist:
+		# path already exist:
 
 		if os.path.isdir(item):
 			return
@@ -451,7 +446,7 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 	"""
 	path = ensure_breadcrumbs_are_folders(
 		path, overwrite_folders
-	)  # type: Union(str, unicode)
+	)  # type: _t.Union(str, unicode)
 	# it's guaranteed to have no trailing slash now
 
 	if not os.path.exists(path):
@@ -504,36 +499,21 @@ def empty_dir(path, overwrite=0):
 
 
 def detect_file_encoding(
-	file_path,  # type: Union[str, unicode]
+	file_path,
 	limit=64*1024,  # 64 Kb
-	mode=4
+	mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT
 ):
 	"""
 
-	:param file_path:
+	:type file_path: str|unicode
 	:param limit: max amount of bytes read from the file. If non-int or 0 and less, read it entirely .
-	:param mode:
-		In all modes, we try to find a BOM first. If it's found, detect the corresponding UTF-X encoding from it.
-		Otherwise, proceed to the trial-and-error-based detection:
-
-		*
-			0 - don't use any external modules.
-			`ascii` or `utf-8` (with 1.0 precision) if any detected,
-			the default system's codepage (with 0.0 precision) otherwise.
-		* 1 - use `chardet` only
-		* 2 - use `chardet` **WITH** `UnicodeDammit` from `beautifulsoup4`.
-		*
-			3 and 4:
-
-			First, try without external modules. If no success, try with them:
-
-			`chardet`-only or `chardet` + `UnicodeDammit`, respectively.
+	:param mode: one of the options from `detect_encoding_modes` submodule.
 	:return:
 		* `str` detected encoding
 		* `float` how sure the detector is:
-			* in no-modules mode, 1.0 on success, 0.0 if default returned
-			* in chardet-mode, the actual 'sureness' of detector
-			* in UnicodeDammit-mode, always excactly 0.5
+			* in **BUILT_IN** mode, 1.0 on success, 0.0 if default encoding returned
+			* in `chardet` mode, the actual 'sureness' of detector
+			* in `UnicodeDammit` mode, always excactly 0.5
 	"""
 	# file_path = r'p:\0-Unity\builtin_shaders\CGIncludes\AutoLight.cginc'
 	import codecs
@@ -680,36 +660,74 @@ def detect_file_encoding(
 
 
 def read_file_lines(
-	file_path,  # type: Union[str, unicode]
-	encoding=None,  # type: Optional[str]
-	strip_newline_char=True
+	file_path, encoding=None, strip_newline_char=True,
+	line_process_f=None  # type: _t.Optional[_t.Callable[[union_str], union_str]]
 ):
 	"""
-	High-level function reading a file at a given path (in a given encoding) as list of lines.
+	High-level function reading a file at as list of lines.
+	It's benefit over default `open()` is that it supports a few common features
+	which are enabled as simply as just passing an argument.
 
-	If no encoding provided, read the file as raw (single-byte) strings.
+	:param file_path: the file path.
+	:type file_path: str|unicode
+	:param encoding:
+		*
+			`None`: read the file with the default `open()` command,
+			with no decoding performed.
+		*
+			`str`: the file is decoded to the list of unicode strings,
+			with the given encoding and a more advanced `io.open()` command.
+	:type encoding: None|str
+	:param strip_newline_char:
+		When enabled (default), the trailing newline-char is removed from each line.
+	:type strip_newline_char: bool
+	:param line_process_f:
+		An optional function processing a single line as file is being read.
+		This lets you get a list of lines that are already processed,
+		which is much more memory-effecient and performant then reading a file first
+		and then processing the entire list as a whole new step.
+
+		When provided and newline-char stripping is also enabled, the **stripping is
+		performed first** (your function already gets a string with no trailing newline-char).
 	"""
 	error_check.file_readable(file_path)
+
+	def _rstrip_with_processing(
+		line_str  # type: union_str
+	):
+		return line_process_f(line_str.rstrip('\r\n'))
+
+	def _rstrip_only(
+		line_str  # type: union_str
+	):
+		return line_str.rstrip('\r\n')
+
+	is_f_given = callable(line_process_f)
+	if strip_newline_char:
+		f = _rstrip_with_processing if is_f_given else _rstrip_only
+	else:
+		f = line_process_f if is_f_given else None
+
 
 	if isinstance(encoding, (str, unicode)) and encoding:
 		# we do have an encoding
 		import io
 		try:
 			with io.open(file_path, 'rt', encoding=encoding) as fl:
-				if strip_newline_char:
-					lines = [l.rstrip('\r\n') for l in fl]  # type: List[unicode]
+				if f is None:
+					lines = list(fl)  # type: _t.List[unicode]
 				else:
-					lines = list(fl)  # type: List[unicode]
+					lines = [f(l) for l in fl]  # type: _t.List[unicode]
 		except IOError:
 			raise errors.NotReadable(file_path)
 	else:
 		# no encoding is provided
 		try:
 			with open(file_path, 'rt') as fl:
-				if strip_newline_char:
-					lines = [l.rstrip('\r\n') for l in fl]  # type: List[str]
+				if f is None:
+					lines = list(fl)  # type: _t.List[str]
 				else:
-					lines = list(fl)  # type: List[str]
+					lines = [f(l) for l in fl]  # type: _t.List[str]
 		except IOError:
 			raise errors.NotReadable(file_path)
 
