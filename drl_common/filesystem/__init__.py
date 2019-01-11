@@ -13,7 +13,6 @@ from . import detect_encoding_modes, errors, error_check, file_time
 from .. import is_maya as _im
 from modules import pip_install as _inst
 
-
 _is_maya = _im.is_maya()
 if _is_maya:
 	from maya import cmds
@@ -707,7 +706,6 @@ def read_file_lines(
 		f = _rstrip_with_processing if is_f_given else _rstrip_only
 	else:
 		f = line_process_f if is_f_given else None
-
 
 	if isinstance(encoding, (str, unicode)) and encoding:
 		# we do have an encoding

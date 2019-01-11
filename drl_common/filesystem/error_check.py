@@ -6,6 +6,10 @@ from os import path as _pth
 
 
 def path_exists(path, not_link=False):
+	"""
+	:type path: str|unicode
+	:type not_link: bool
+	"""
 	from . import to_unix_path
 	path = to_unix_path(path)
 	if not _pth.exists(path):
@@ -16,6 +20,10 @@ def path_exists(path, not_link=False):
 
 
 def dir_exists(path, not_link=False):
+	"""
+	:type path: str|unicode
+	:type not_link: bool
+	"""
 	path = path_exists(path, False)
 	if not _pth.isdir(path):
 		raise _err.NotDir(path)
@@ -25,6 +33,10 @@ def dir_exists(path, not_link=False):
 
 
 def file_exists(path, not_link=False):
+	"""
+	:type path: str|unicode
+	:type not_link: bool
+	"""
 	path = path_exists(path, False)
 	if not _pth.isfile(path):
 		raise _err.NotFile(path)
@@ -34,6 +46,11 @@ def file_exists(path, not_link=False):
 
 
 def file_readable(path, not_link=False, try_read=False):
+	"""
+	:type path: str|unicode
+	:type not_link: bool
+	:type try_read: bool
+	"""
 	path = file_exists(path, not_link)
 
 	def _is_problem():
@@ -54,6 +71,10 @@ def file_readable(path, not_link=False, try_read=False):
 
 
 def file_writeable(path, not_link=True):
+	"""
+	:type path: str|unicode
+	:type not_link: bool
+	"""
 	path = file_exists(path, not_link)
 	if not _os.access(path, _os.W_OK):
 		raise _err.NotWriteable(path)
