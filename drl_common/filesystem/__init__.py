@@ -1,6 +1,7 @@
 __author__ = 'DRL'
 
 import os
+import io
 from os import path as _pth
 import shutil as sh
 
@@ -510,16 +511,16 @@ def detect_file_encoding(
 	:return:
 		* `str` detected encoding
 		* `float` how sure the detector is:
-			* in **BUILT_IN** mode, 1.0 on success, 0.0 if default encoding returned
+			* in **BUILT_IN** mode, 1.5 on success (to differentiate from the actual detection), 0.0 if default encoding returned
 			* in `chardet` mode, the actual 'sureness' of detector
-			* in `UnicodeDammit` mode, always excactly 0.5
+			* in `UnicodeDammit` mode, always excactly 2.5
 	"""
 	# file_path = r'p:\0-Unity\builtin_shaders\CGIncludes\AutoLight.cginc'
 	import codecs
 
 	# first, try to detect BOM.
 	# an extension of: https://stackoverflow.com/questions/13590749/reading-unicode-file-data-with-bom-chars-in-python
-	error_check.file_readable(file_path)
+	file_path = error_check.file_readable(file_path)
 	try:
 		first_bytes = min(32, _pth.getsize(file_path))  # int for now
 		with open(file_path, 'rb') as fl_first:
@@ -534,7 +535,7 @@ def detect_file_encoding(
 		(codecs.BOM_UTF16_LE, 'utf-16-le'),
 	):
 		if first_bytes.startswith(bom):
-			return enc, 1.0
+			return enc, 1.5
 	del first_bytes
 
 	if isinstance(mode, float):
@@ -576,7 +577,8 @@ def detect_file_encoding(
 			else:
 				return True
 
-		def is_utf8_strict():
+		def detect_utf8_strict():
+			enc_utf = 'utf-8'
 			try:
 				# print(raw.decode('koi8-r')[1181:1230])
 				# print(raw.decode('cp1252')[1181:1230])
@@ -584,19 +586,24 @@ def detect_file_encoding(
 				# print(raw.decode('utf-8')[1181:1230])
 				# print(raw.decode('ISO-8859-1')[1181:1230])
 				# print(b'\xED\xB2\x80'.decode('utf-8'))
-				bytes_string.decode('utf-8')
+				bytes_string.decode(enc_utf)
 			except UnicodeDecodeError:
-				return False
+				enc_utf = 'utf-8-sig'
+				try:
+					bytes_string.decode(enc_utf)
+				except UnicodeDecodeError:
+					return None
 			else:
 				for ch in bytes_string:
 					if 0xD800 <= ord(ch) <= 0xDFFF:
-						return False
-				return True
+						return None
+				return enc_utf
 
 		if is_ascii():
 			return 'ascii'
-		if is_utf8_strict():
-			return 'utf-8'
+		detected_utf = detect_utf8_strict()
+		if detected_utf:
+			return detected_utf
 		return ''
 
 	def _mode_chardet(bytes_string):
@@ -623,13 +630,13 @@ def detect_file_encoding(
 		from bs4 import UnicodeDammit
 		detected = UnicodeDammit(bytes_string)
 		res_enc = detected.original_encoding  # type: str
-		return res_enc, 0.5
+		return res_enc, 2.5
 
 	if mode == 0 or mode > 2:
 		# try to detect using no external modules:
 		detected = _mode_no_modules(raw)
 		if detected:
-			return detected, 1.0
+			return detected, 1.5
 		# we had no success. The next behavior depends on the mode:
 		if mode == 0:
 			# use the default system's encoding:
@@ -709,7 +716,6 @@ def read_file_lines(
 
 	if isinstance(encoding, (str, unicode)) and encoding:
 		# we do have an encoding
-		import io
 		try:
 			with io.open(file_path, 'rt', encoding=encoding) as fl:
 				if f is None:
@@ -730,3 +736,74 @@ def read_file_lines(
 			raise errors.NotReadable(file_path)
 
 	return lines
+
+
+def read_file_lines_best_enc(
+	file_path,  # type: union_str
+	strip_newline_char=True,
+	line_process_f=None,  # type: _t.Optional[_t.Callable[[union_str], union_str]]
+	detect_limit=64*1024,  # 64 Kb
+	detect_mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT,
+	sure_thresh=0.5
+):
+	"""
+	A wrapper, combining `detect_file_encoding()` and `read_file_lines()` and a few different read attempts
+	into a single function, which should try read a file with an unknown encoding the best way possible.
+
+	First, it detects a file encoding. Then it reads it:
+		* If detected 'sureness' is enough (higher or equal to `sure_thresh`), read the file using detected enc.
+		* If not, try to read as ascii first.
+		* If still no success, with no encoding at all (using the basic `open()`, not `io.open()`).
+
+	For any argument other than `sure_thresh`, consult either `detect_file_encoding()` or `read_file_lines()`.
+
+	:return:
+		* `List of strings/unicodes` - the read file lines.
+		* `string` encoding on success, `None` if the basic `open()` was used.
+		* `float` how sure the detector is about it's encoding.
+	"""
+	encoding, enc_sure = detect_file_encoding(file_path, detect_limit, detect_mode)
+	not_enough_sure = bool(enc_sure < sure_thresh)
+	if not_enough_sure or not encoding:
+		try:
+			encoding = 'ascii'
+			lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+			if not_enough_sure:
+				enc_sure = 1.0
+		except UnicodeDecodeError:
+			encoding = None
+			lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+	else:
+		lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+
+	return lines, encoding, enc_sure
+
+
+def write_file_lines(
+	file_path,  # type: union_str
+	lines,  # type: _t.Union[union_str, _t.Iterable[union_str]]
+	encoding=None,  # type: _t.Optional[str]
+	newline='\n',  # type: _t.Optional[str]
+	newline_included=False
+):
+	file_path = error_check.file_writeable(file_path)
+
+	def open_io():
+		return io.open(file_path, 'wt', encoding=encoding, newline=newline)
+
+	def open_default():
+		return open(file_path, 'wt')
+
+	open_f = open_default if (encoding is None and newline is None) else open_io
+	# lines = '\n'.join(lines)
+
+	try:
+		with open_f() as fl:
+			if isinstance(lines, str_t):
+				fl.write(lines)
+			else:
+				if (newline is None or newline != '') and not newline_included:
+					lines = (l + '\n' for l in lines)
+				fl.writelines(lines)
+	except IOError:
+		raise errors.NotWriteable(file_path)
