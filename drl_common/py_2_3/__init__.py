@@ -9,15 +9,18 @@ try:
 	py3 = True
 except ImportError:
 	import __empty_module as typing
-	py3 = False
 	py2 = True
+	py3 = False
 
 if py3:
+	izip = zip
+	izip_longest = zip_longest
 	str_t = (str,)
 else:
+	from itertools import izip, izip_longest
 	str_t = (str, unicode)
 
 try:
 	union_str = typing.Union[str, unicode]
 except (NameError, AttributeError):
-	pass
+	union_str = None
