@@ -16,6 +16,56 @@ except ImportError:
 	pass
 
 
+class DefaultTuple(tuple):
+	"""
+	Similar to DefaultDict, but a tuple.
+
+	When accessing an index that currently is out of tuple's range,
+	a default value is returned.
+	"""
+	def __init__(self, default='', *args, **kwargs):
+		super(DefaultTuple, self).__init__(*args, **kwargs)
+		self.default = default
+
+	def __getitem__(self, item):
+		try:
+			return super(DefaultTuple, self).__getitem__(item)
+		except IndexError:
+			return self.default
+
+	def __repr__(self):
+		return '{cls}(default={d}, {val})'.format(
+			cls=self.__class__.__name__,
+			d=repr(self.default),
+			val=super(DefaultTuple, self).__repr__()
+		)
+
+
+class DefaultList(list):
+	"""
+	Similar to DefaultDict, but a list.
+
+	When accessing an index that currently is out of list's range,
+	the list kept intact but a default value is returned.
+	"""
+	def __init__(self, default='', *args, **kwargs):
+		super(DefaultList, self).__init__(*args, **kwargs)
+		self.default = default
+
+	def __getitem__(self, item):
+		try:
+			return super(DefaultList, self).__getitem__(item)
+		except IndexError:
+			return self.default
+
+	def __repr__(self):
+		return '{cls}(default={d}, {val})'.format(
+			cls=self.__class__.__name__,
+			d=repr(self.default),
+			val=super(DefaultList, self).__repr__()
+		)
+
+
 class Container(object):
 	"""
 	Just a dummy service class, acting like
