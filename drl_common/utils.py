@@ -1,19 +1,31 @@
-from collections import Iterable
-from . import errors as err
-
 __author__ = 'DRL'
 
+import string as _string
+from collections import Iterable as _Iterable
+from . import errors as err
 
-class Dummy(object):
+try:
+	_str_t = (str, unicode)
+except:
+	_str_t = (str, )
+
+try:
+	# support type hints:
+	import typing as _t
+except ImportError:
+	pass
+
+
+class Container(object):
 	"""
 	Just a dummy service class, acting like
 	an editable namedtuple.
 
 	It's child elements can be added:
 		* on object creation (as arguments):
-			``Dummy(a=1, b=[])``
+			``Container(a=1, b=[])``
 		* simply by assignment with a dot operator:
-			``q = Dummy();``
+			``q = Container();``
 			``q.a = 1;``
 			``q.b = []``
 
@@ -21,40 +33,94 @@ class Dummy(object):
 	added after creation are also tracked and returned by
 	respective methods.
 	"""
-	def __init__(self, **kwargs):
-		super(Dummy, self).__init__()
-		self.__dict__.update(kwargs)
 
-	def as_dict(self):
-		return {
-			k: v for k, v in self.__dict__.iteritems()
-			if k and not k.startswith('_')
-		}
+	@classmethod
+	def _class_children(cls):
+		"""
+		The method returning a set of fields/methods defined in the class itself.
+		It's used to prevent users from overriding those children with their own
+		items of the same name.
+		"""
+		res = {nm for nm in dir(cls) if not nm.startswith('_')}  # type: _t.Set[str]
+		return res
+
+	@classmethod
+	def __proper_items(cls, **kwargs):
+		"""
+		Filter out any items (i.e., key-value pairs) which keys are somehow unsupported.
+		I.e., with a key that:
+			* is empty or not a string at all
+			* starts with an unsupported character ('_' or not ascii)
+			* clashes with a class' built-in members.
+
+		The resulting items are always sorted by key.
+		Duplicated keys are removed but it's unclear which value is kept
+		since `kwargs` dict is unordered.
+		"""
+		seen = set()
+		seen_add = seen.add
+		class_children = cls._class_children()
+		return sorted(
+			(k, v) for k, v in
+			kwargs.iteritems()
+			if (
+				k
+				and isinstance(k, _str_t)
+				and k[0] in _string.ascii_letters
+				# and not k.startswith('_')  # already covered by previous ^ condition
+				and k not in class_children
+				and not(k in seen or seen_add(k))  # ensure each key is unique and add if it is
+			)
+		)
+
+	def __init__(self, **kwargs):
+		super(Container, self).__init__()
+		self.__dict__.update(
+			dict(self.__class__.__proper_items(**kwargs))
+		)
 
 	def items(self):
-		return sorted(self.as_dict().iteritems())
+		"""
+		List of key-value tuple pairs of children.
+		"""
+		return self.__class__.__proper_items(**self.__dict__)
+
+	def as_dict(self):
+		"""
+		A dictionary of children. You're safe to edit it.
+		"""
+		return dict(self.items())
+
+	def update(self, **kwargs):
+		self.__dict__.update(
+			dict(self.__class__.__proper_items(**kwargs))
+		)
 
 	def __repr__(self):
-		res_vals = self.items()
-		num = len(res_vals)
+		res_values = self.items()
+		num = len(res_values)
 		pre, separator, post = '', ', ', ''
 		if (
-			num > 3 or
-			any(
-				(isinstance(val, Iterable) and not isinstance(val, (str, unicode)))
-				for nm, val in (res_vals if num < 4 else res_vals[:3])
+			num > 3 or (
+				num > 0 and any(
+					(isinstance(val, _Iterable) and not isinstance(val, _str_t))
+					for nm, val in (res_values if num < 4 else res_values[:3])
+				)
 			)
 		):
 			pre, separator, post = '\n\t', ',\n\t', '\n'
 
-		res_vals = [
+		res_values = [
 			'{0}={1}'.format(nm, repr(val))
-			for nm, val in res_vals
+			for nm, val in res_values
 		]
-		res_vals = separator.join(res_vals)
-		if res_vals:
-			res_vals = pre + res_vals + post
-		return 'Dummy({0})'.format(res_vals)
+		res_values = separator.join(res_values)
+		if res_values:
+			res_values = pre + res_values + post
+		return '{0}({1})'.format(self.__class__.__name__, res_values)
+
+
+Dummy = Container  # fallback for a legacy code
 
 
 def remove_duplicates(items=None):
@@ -79,7 +145,7 @@ def remove_duplicates(items=None):
 
 def list_difference(source_list, subtracted_list):
 	"""
-	Removes all occurances of 2nd list elements from the 1st list.
+	Removes all occurrences of 2nd list elements from the 1st list.
 
 	:param source_list: list or tuple
 	:param subtracted_list: list or tuple
@@ -104,7 +170,7 @@ def list_difference(source_list, subtracted_list):
 
 def camel_case(string='', punctuation_to_underscores=True, small_first_letter=True):
 	import re
-	#string='Some of my text is AWESOME, the other is not -_ all of it is cool'
+	# string='Some of my text is AWESOME, the other is not -_ all of it is cool'
 	if not (isinstance(string, str) and string):
 		return ''
 	res = string.title()
