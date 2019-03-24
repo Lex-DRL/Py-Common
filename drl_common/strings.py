@@ -1,13 +1,13 @@
 from py_2_3 import (
 	typing as _t,
-	str_t, union_str, izip
+	str_t, str_hint, izip
 )
 
 __author__ = 'DRL'
 
 
 def common_prefix(
-	strings,  # type: _t.Sequence[union_str]
+	strings,  # type: _t.Sequence[str_hint]
 	ignore_case=False
 ):
 	"""

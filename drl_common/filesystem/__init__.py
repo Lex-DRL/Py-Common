@@ -667,7 +667,7 @@ def detect_file_encoding(
 
 def read_file_lines(
 	file_path, encoding=None, strip_newline_char=True,
-	line_process_f=None  # type: _t.Optional[_t.Callable[[union_str], union_str]]
+	line_process_f=None  # type: _t.Optional[_t.Callable[[str_hint], str_hint]]
 ):
 	"""
 	High-level function reading a file at as list of lines.
@@ -699,12 +699,12 @@ def read_file_lines(
 	error_check.file_readable(file_path)
 
 	def _rstrip_with_processing(
-		line_str  # type: union_str
+		line_str  # type: str_hint
 	):
 		return line_process_f(line_str.rstrip('\r\n'))
 
 	def _rstrip_only(
-		line_str  # type: union_str
+		line_str  # type: str_hint
 	):
 		return line_str.rstrip('\r\n')
 
@@ -739,9 +739,9 @@ def read_file_lines(
 
 
 def read_file_lines_best_enc(
-	file_path,  # type: union_str
+	file_path,  # type: str_hint
 	strip_newline_char=True,
-	line_process_f=None,  # type: _t.Optional[_t.Callable[[union_str], union_str]]
+	line_process_f=None,  # type: _t.Optional[_t.Callable[[str_hint], str_hint]]
 	detect_limit=64*1024,  # 64 Kb
 	detect_mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT,
 	sure_thresh=0.5
@@ -780,8 +780,8 @@ def read_file_lines_best_enc(
 
 
 def write_file_lines(
-	file_path,  # type: union_str
-	lines,  # type: _t.Union[union_str, _t.Iterable[union_str]]
+	file_path,  # type: str_hint
+	lines,  # type: _t.Union[str_hint, _t.Iterable[str_hint]]
 	encoding=None,  # type: _t.Optional[str]
 	newline='\n',  # type: _t.Optional[str]
 	newline_included=False

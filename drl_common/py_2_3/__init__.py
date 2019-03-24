@@ -12,15 +12,42 @@ except ImportError:
 	py2 = True
 	py3 = False
 
-if py3:
+try:
+	from itertools import izip, izip_longest
+except ImportError:
 	izip = zip
 	izip_longest = zip_longest
-	str_t = (str,)
-else:
-	from itertools import izip, izip_longest
-	str_t = (str, unicode)
 
+
+str_t = [str]
+# noinspection PyBroadException,PyPep8
 try:
-	union_str = typing.Union[str, unicode]
-except (NameError, AttributeError):
-	union_str = None
+	if unicode not in str_t:
+		str_t += [unicode]
+except:
+	pass
+# noinspection PyBroadException,PyPep8
+try:
+	if bytes not in str_t:
+		str_t += [bytes]
+except:
+	pass
+str_t = tuple(str_t)  # type: typing.Tuple[typing.Type[str], typing.Type[unicode]]
+
+
+str_hint = str
+# noinspection PyBroadException,PyPep8
+try:
+	str_hint = typing.Union[str_hint, unicode]
+except:
+	pass
+# noinspection PyBroadException,PyPep8
+try:
+	str_hint = typing.Union[str_hint, bytes]
+except:
+	pass
+# noinspection PyBroadException,PyPep8
+try:
+	str_hint = typing.Union[str_hint, typing.AnyStr]
+except:
+	pass

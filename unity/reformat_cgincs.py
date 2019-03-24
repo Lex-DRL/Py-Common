@@ -33,7 +33,7 @@ _re_equal_post = _re.compile('=\s{2,}')
 
 
 def reformat_line(
-	file_line=''  # type: union_str
+	file_line=''  # type: str_hint
 ):
 	# first, let's replace any non-brake space to a regular spaces, since it's not catched by re's "\s":
 	if isinstance(file_line, unicode):
@@ -43,7 +43,7 @@ def reformat_line(
 		file_line = file_line.replace('\xc2\xa0', ' ')
 
 	def _clean_main_indent(
-		line  # type: union_str
+		line  # type: str_hint
 	):
 		"""
 		replace space indentations to tabs
@@ -61,7 +61,7 @@ def reformat_line(
 		return line
 
 	def _clean_indent_in_comment(
-		line  # type: union_str
+		line  # type: str_hint
 	):
 		"""
 		same thing with spaces in only-comment lines
@@ -81,7 +81,7 @@ def reformat_line(
 		return line
 
 	def _clean_redundant_spaces(
-		line  # type: union_str
+		line  # type: str_hint
 	):
 		"""
 		remove any trailing whitespace chars, if they're not a comment
@@ -94,7 +94,7 @@ def reformat_line(
 		return line
 
 	def _clean_indents_in_macro(
-		line  # type: union_str
+		line  # type: str_hint
 	):
 		"""
 		Move indents after the "#" sign outside the macro.
@@ -104,7 +104,7 @@ def reformat_line(
 		if not match_macro:
 			return line
 
-		pre_indent = match_macro.groups()[0]  # type: union_str
+		pre_indent = match_macro.groups()[0]  # type: str_hint
 		in_macro = _re_indent_macro.sub(' ', line)
 
 		# since now, there's no dash sign at start
@@ -116,9 +116,9 @@ def reformat_line(
 		return pre_indent + macro_tabs + '#' + in_macro
 
 	def _clean_syntax(
-		line  # type: union_str
+		line  # type: str_hint
 	):
-		indent, main_code = _re_split_indent.match(line).groups()  # type: union_str, union_str
+		indent, main_code = _re_split_indent.match(line).groups()  # type: str_hint, str_hint
 		while _re_spaces_brace_pre.search(main_code):
 			main_code = _re_spaces_brace_pre.sub(r'( ', main_code)
 		while _re_spaces_brace_post.search(main_code):
