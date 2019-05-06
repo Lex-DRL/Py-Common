@@ -1,15 +1,26 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 try:
 	# support type hints in Python 3:
 	from typing import *
-	unicode = str  # fix errors in Python 3
 except ImportError:
+	pass
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_hint as _str_hint
+)
+
+
+class PipError(ImportError):
+	"""
+	A subset of `ImportError` signaling that there was some error with pip.
+	"""
 	pass
 
 
+# noinspection PyIncorrectDocstring
 def pip_install(
-	module_names,  # type: Union[str, unicode, Iterable[Union[str, unicode]]]
+	module_names,  # type: Union[_str_hint, Iterable[_str_hint]]
 	upgrade=True,
 	force_reinstall=False
 ):
@@ -32,16 +43,24 @@ def pip_install(
 		... and even update the PIP itself by passing it as the 1st module:
 			``pip_install('pip chardet tzlocal')``
 	"""
-	if isinstance(module_names, (str, unicode)):
+	if isinstance(module_names, _str_t):
 		module_names = module_names.split()
 	module_names = filter(None, module_names)
 	module_names = [
 		(
-			m if isinstance(m, (str, unicode)) else str(m)
+			m if isinstance(m, _str_t) else str(m)
 		).strip()
 		for m in module_names
-	]  # type: List[Union[str, unicode]]
+	]  # type: List[_str_hint]
 	module_names = filter(None, module_names)
+
+	# TODO: there's only basic clean-up and split by spaces.
+	# TODO: Should also handle commas and dots.
+
+	if not module_names:
+		return
+
+	# TODO: detect which modules need to be installed (not upgraded) by trying to import them
 
 	pip_args = [
 		arg for arg, do_arg in (
@@ -54,7 +73,39 @@ def pip_install(
 
 	try:
 		import pip
-		pip.main(pip_args)
-	except AttributeError:
-		from pip import _internal as pip_internal
-		pip_internal.main(pip_args)
+		# noinspection PyUnresolvedReferences
+		main_f = pip.main
+	except (AttributeError, ImportError):
+		try:
+			# noinspection PyProtectedMember
+			from pip import _internal as pip_internal
+			main_f = pip_internal.main
+		except (AttributeError, ImportError):
+			raise PipError("PIP isn't installed or can't be found")
+	main_f(pip_args)
+
+	try:
+		import importlib
+	except ImportError:
+		# there's no importlib module.
+		# So let's just assume everything went ok, with no check:
+		return
+
+	def is_imported_ok(module_name):
+		try:
+			importlib.import_module(module_name)
+			return True
+		except ImportError:
+			return False
+
+	not_importable = [
+		mdl for mdl in module_names
+		if not is_imported_ok(mdl)
+	]
+
+	if not_importable:
+		raise PipError(
+			"The following modules can't be imported. "
+			"Probably because they were just installed by PIP and "
+			"Python interpreter needs to be restarted first:\n" + '\n'.join(not_importable)
+		)
