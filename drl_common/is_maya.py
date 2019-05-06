@@ -25,7 +25,5 @@ if __is_maya:
 def is_maya():
 	"""
 	Whether python interpreter is Maya.
-
-	:return: <bool>
 	"""
 	return __is_maya
