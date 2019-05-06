@@ -34,6 +34,13 @@ except:
 	pass
 str_t = tuple(str_t)  # type: typing.Tuple[typing.Type[str], typing.Type[unicode]]
 
+# noinspection PyBroadException,PyPep8
+try:
+	t_strict_unicode = unicode
+	t_strict_str = str
+except:
+	t_strict_unicode = str
+	t_strict_str = bytes
 
 str_hint = str
 # noinspection PyBroadException,PyPep8
