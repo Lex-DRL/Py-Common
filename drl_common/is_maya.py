@@ -10,11 +10,12 @@ if __is_maya:
 	_path = cmds.__file__.replace('\\', '/')
 	assert isinstance(_path, (str, unicode))
 	_split = _path.split('/')
-	if all((
-		len(_split) > 4,
-		_split[-4] == 'py' or _split[-5] == 'py',
-		_split[-5] == 'completion' or _split[-6] == 'completion'
-	)):
+	if (
+		len(_split) > 4 and
+		'py' in _split[-5:] and
+		'completion' in _split[-6:]
+	):
+		# we have actually found a devkit's completion, not really in maya:
 		__is_maya = False
 	del cmds
 	del _path
