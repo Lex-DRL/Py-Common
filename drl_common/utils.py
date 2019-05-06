@@ -1,13 +1,9 @@
 __author__ = 'DRL'
 
 import string as _string
-from collections import Iterable as _Iterable
+from collections import Iterable as _Iterable, Iterator as _Iterator
 from . import errors as err
-
-try:
-	_str_t = (str, unicode)
-except:
-	_str_t = (str, )
+from .py_2_3 import str_t as _str_t, str_hint as _str_hint
 
 try:
 	# support type hints:
@@ -319,3 +315,27 @@ def group_items(items, key_f=None):
 			key=lambda x: x[0]
 		)
 	]
+
+
+def flatten_gen(possibly_iterable):
+	"""
+	Generator turning any input to a flat sequence.
+	the generator is recursive, so it can handle (almost)
+	any depth of inner sequences.
+	Strings are kept as a whole, not split to individual chars.
+
+	I.e.:
+		* 4 -> (4,)
+		* [4, 5] -> (4, 5)
+		* [4, (5, 6), 7, (['aaa'], [8], [{9}, 10])] -> (4, 5, 6, 7, 'aaa', 8, 9, 10)
+	"""
+	if isinstance(possibly_iterable, _str_t):
+		# string
+		yield possibly_iterable  # type: _str_hint
+	elif isinstance(possibly_iterable, (_Iterable, _Iterator)):
+		# iterable
+		for el in possibly_iterable:
+			for sub in flatten_gen(el):
+				yield sub  # type: _t.Any
+	else:
+		yield possibly_iterable  # type: _t.Any
