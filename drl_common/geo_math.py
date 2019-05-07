@@ -4,6 +4,7 @@ Abstract geometry math, not tied specifically to any 3D software.
 
 __author__ = 'Lex Darlog (DRL)'
 
+# noinspection PyProtectedMember
 from .utils import (
 	flatten_gen as _flatten,
 	_Iterable,
@@ -12,14 +13,57 @@ from .utils import (
 
 try:
 	# support type hints in Python 3:
-	from typing import *
+	# noinspection PyUnresolvedReferences
+	import typing as _t
 except ImportError:
 	pass
-from drl_common.py_2_3 import str_t, str_hint
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_hint as _str_hint
+)
+
+__is_maya = False
+try:
+	# noinspection PyUnresolvedReferences
+	from .is_maya import is_maya as _is_maya_f
+	__is_maya = _is_maya_f()
+except ImportError:
+	pass
+
+
+def vector3_gen(*components):
+	"""
+	Generator that always produces a sequence of exactly 3 float/int elements.
+	It's kinda a slice, but works even if the original iterable
+	doesn't support slicing, and also fills missing components with zeroes.
+	"""
+
+	i = 0  # after the loop, it will have the num of sent components
+	# loop over given components, but only up to the 3rd:
+	for comp in _flatten(components):
+		if isinstance(comp, _str_t):
+			# the comp is a string. Let's try to extract a float/int from it:
+			try:
+				comp = int(comp)
+			except ValueError:
+				try:
+					comp = float(comp)
+				except ValueError:
+					pass
+
+		if not isinstance(comp, (int, float)):
+			continue
+		if i > 2:
+			break
+		yield comp
+		i += 1
+	# if we sent less then 3, fill the remaining ones with zero:
+	for x in xrange(3 - i):
+		yield 0
 
 
 def points_closest_plane(
-	positions  # type: Sequence[api.MVector]
+	positions  # type: _t.Sequence[api.MVector]
 ):
 	"""
 	https://gist.github.com/RedForty/9fc37bc8ad647256177c0749065ac262
@@ -33,36 +77,11 @@ def points_closest_plane(
 	if not positions:  # Validate input
 		return None
 
-	from .is_maya import is_maya as _is_maya
-	is_maya = _is_maya()
-
-	if is_maya:
+	if __is_maya:
 		from maya import cmds
 		from maya.api import OpenMaya as api
 		from pymel import core as pm
-
 		from drl.for_maya.ls.convert import components as comp
-
-	def slice_xyz(
-		iterable  # type: Iterable
-	):
-		"""
-		Generator that always produces a sequence of exactly 3 float/int elements.
-		It's kinda a slice, but works even if the original iterable
-		doesn't support slicing, and also fills missing components with zeroes.
-		"""
-		i = 0  # after the loop, it will have the num of sent components
-		# loop over given components, but only up to the 3rd:
-		for comp in iterable:
-			if not isinstance(comp, (int, float)):
-				continue
-			if i > 2:
-				break
-			yield comp
-			i += 1
-		# if we sent less then 3, fill the remaining ones with zero:
-		for x in xrange(3 - i):
-			yield 0
 
 	def cleanup_pos_as_maya(iterable):
 		"""
@@ -85,12 +104,12 @@ def points_closest_plane(
 				comp.Poly(comps, selection_if_none=False).to_vertices(flatten=True)
 			)
 			for v in verts:
-				pos_comps = pm.xform(v, q=True, t=True, ws=True)  # type: List[float]
+				pos_comps = pm.xform(v, q=True, t=True, ws=True)  # type: _t.List[float]
 				# noinspection PyArgumentList
 				yield api.MVector(pos_comps)
 
 		# we may have a single item, which corresponds to multiple vertices:
-		if isinstance(iterable, str_t) or isinstance(iterable, pm.Component):
+		if isinstance(iterable, _str_t) or isinstance(iterable, pm.Component):
 			for vector in _process_comps(pm.ls(iterable)):
 				yield vector
 				return
@@ -104,13 +123,13 @@ def points_closest_plane(
 				yield pos
 				continue
 
-			if isinstance(pos, str_t) or isinstance(pos, pm.Component):
+			if isinstance(pos, _str_t) or isinstance(pos, pm.Component):
 				for vector in _process_comps(pm.ls(pos)):
 					yield vector
 				continue
 
 			if isinstance(pos, (_Iterable, _Iterator)):
-				px, py, pz = slice_xyz(pos)
+				px, py, pz = vector3_gen(pos)
 				# noinspection PyArgumentList
 				yield api.MVector(px, py, pz)
 
