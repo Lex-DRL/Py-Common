@@ -87,6 +87,19 @@ def points_closest_plane(
 		from pymel import core as pm
 		from drl.for_maya.ls.convert import components as comp
 
+	# noinspection PyPep8Naming
+	def vector(*vector_comps):
+		"""
+		A wrapper which only purpose is to suppress PyCharm warnings
+		caused by shitty Maya devkit which makes PyCharm think that
+		any argument list is wrong.
+
+		Hallelujah Autodesk!
+		Or, more precisely, Seig Heil Auto-Fucking-Desk!
+		"""
+		# noinspection PyArgumentList
+		return api.MVector(*vector_comps)
+
 	def cleanup_pos_as_maya(iterable):
 		"""
 		A generator that turns whatever input is given
@@ -107,16 +120,15 @@ def points_closest_plane(
 			verts = set(
 				comp.Poly(comps, selection_if_none=False).to_vertices(flatten=True)
 			)
-			for v in verts:
-				pos_comps = pm.xform(v, q=True, t=True, ws=True)  # type: _t.List[float]
-				# noinspection PyArgumentList
-				yield api.MVector(pos_comps)
+			for vtx in verts:
+				pos_comps = pm.xform(vtx, q=True, t=True, ws=True)  # type: _t.List[float]
+				yield vector(pos_comps)
 
 		# we may have a single item, which corresponds to multiple vertices:
 		if isinstance(iterable, _str_t) or isinstance(iterable, pm.Component):
-			for vector in _process_comps(pm.ls(iterable)):
-				yield vector
-				return
+			for vec in _process_comps(pm.ls(iterable)):
+				yield vec
+			return
 
 		if not isinstance(iterable, (_Iterable, _Iterator)):
 			# we've got a single item and it can't represent multiple points
@@ -128,19 +140,18 @@ def points_closest_plane(
 				continue
 
 			if isinstance(pos, _str_t) or isinstance(pos, pm.Component):
-				for vector in _process_comps(pm.ls(pos)):
-					yield vector
+				for vec in _process_comps(pm.ls(pos)):
+					yield vec
 				continue
 
 			if isinstance(pos, (_Iterable, _Iterator)):
 				px, py, pz = vector_gen(pos)
-				# noinspection PyArgumentList
-				yield api.MVector(px, py, pz)
+				yield vector(px, py, pz)
 
 	positions = list(positions)
 
 	num_p = len(positions)
-	averagePosition = api.MVector()
+	averagePosition = vector()
 	for point in positions:
 		averagePosition += point
 	centroid = averagePosition / num_p
@@ -173,11 +184,11 @@ def points_closest_plane(
 	yz /= num_p
 	zz /= num_p
 
-	weighted_dir = api.MVector()
+	weighted_dir = vector()
 
 	# X
 	det_x = yy * zz - yz * yz
-	axis_dir = api.MVector(det_x, (xz * yz - xy * zz), (xy * yz - xz * yy))
+	axis_dir = vector(det_x, (xz * yz - xy * zz), (xy * yz - xz * yy))
 	weight = det_x * det_x
 	if (weighted_dir * axis_dir) < 0.0:
 		weight = -weight
@@ -185,7 +196,7 @@ def points_closest_plane(
 
 	# Y
 	det_y = xx * zz - xz * xz
-	axis_dir = api.MVector((xz * yz - xy * zz), (det_y), (xy * xz - yz * xx))
+	axis_dir = vector((xz * yz - xy * zz), (det_y), (xy * xz - yz * xx))
 	weight = det_y * det_y
 	if (weighted_dir * axis_dir) < 0.0:
 		weight = -weight
@@ -193,7 +204,7 @@ def points_closest_plane(
 
 	# Z
 	det_z = xx * yy - xy * xy
-	axis_dir = api.MVector((xy * yz - xz * yy), (xy * xz - yz * xx), (det_z))
+	axis_dir = vector((xy * yz - xz * yy), (xy * xz - yz * xx), (det_z))
 	weight = det_z * det_z
 	if (weighted_dir * axis_dir) < 0.0:
 		weight = -weight
