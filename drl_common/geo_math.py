@@ -31,15 +31,18 @@ except ImportError:
 	pass
 
 
-def vector3_gen(*components):
+def vector_gen(components, size=3):
 	"""
 	Generator that always produces a sequence of exactly 3 float/int elements.
 	It's kinda a slice, but works even if the original iterable
 	doesn't support slicing, and also fills missing components with zeroes.
 	"""
+	size = max(1, size)
+	max_index = size - 1
 
 	i = 0  # after the loop, it will have the num of sent components
-	# loop over given components, but only up to the 3rd:
+
+	# loop over given components, but only up to the Nth:
 	for comp in _flatten(components):
 		if isinstance(comp, _str_t):
 			# the comp is a string. Let's try to extract a float/int from it:
@@ -51,14 +54,15 @@ def vector3_gen(*components):
 				except ValueError:
 					pass
 
+		if i > max_index:
+			break
 		if not isinstance(comp, (int, float)):
 			continue
-		if i > 2:
-			break
+
 		yield comp
 		i += 1
 	# if we sent less then 3, fill the remaining ones with zero:
-	for x in xrange(3 - i):
+	for x in xrange(size - i):
 		yield 0
 
 
@@ -129,7 +133,7 @@ def points_closest_plane(
 				continue
 
 			if isinstance(pos, (_Iterable, _Iterator)):
-				px, py, pz = vector3_gen(pos)
+				px, py, pz = vector_gen(pos)
 				# noinspection PyArgumentList
 				yield api.MVector(px, py, pz)
 
