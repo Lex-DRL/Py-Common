@@ -4,11 +4,10 @@ Abstract geometry math, not tied specifically to any 3D software.
 
 __author__ = 'Lex Darlog (DRL)'
 
-# noinspection PyProtectedMember
-from .utils import (
-	flatten_gen as _flatten,
-	_Iterable,
-	_Iterator
+from .utils import flatten_gen as _flatten
+from collections import (
+	Iterable as _Iterable,
+	Iterator as _Iterator
 )
 
 try:
@@ -33,7 +32,7 @@ except ImportError:
 
 def vector_gen(components, size=3):
 	"""
-	Generator that always produces a sequence of exactly 3 float/int elements.
+	Generator that always produces a sequence of `size`, containing float/int elements.
 	It's kinda a slice, but works even if the original iterable
 	doesn't support slicing, and also fills missing components with zeroes.
 	"""
@@ -122,16 +121,29 @@ def __closest_plane_maya(
 				yield vector(pos_comps)
 
 		# we may have a single item, which corresponds to multiple vertices:
-		if isinstance(iterable, _str_t) or isinstance(iterable, pm.Component):
+		if isinstance(iterable, _str_t) or isinstance(iterable, pm.PyNode):
+			iterable = pm.ls(iterable)  # no need to flatten, we'll do it in converting func
 			for vec in _comps_to_positions(pm.ls(iterable)):
 				yield vec
 			return
 
-		if not isinstance(iterable, (_Iterable, _Iterator)):
-			# we've got a single item and it can't represent multiple points
+		if isinstance(iterable, (api.MVector, api.MFloatVector)):
+			# to avoid iterating over a single vector's components:
+			return
+
+		# let's check if it's an iterable by brute-forcefully attempting
+		# to actually iterate over it:
+		try:
+			iterable = iter(iterable)
+		except TypeError:
+			# we've got a single value (not an iterable)
+			# that can't even be converted to vertices. So just finish:
 			return
 
 		for pos in iterable:
+			if isinstance(pos, api.MFloatVector):
+				yield vector(pos)
+				continue
 			if isinstance(pos, api.MVector):
 				yield pos
 				continue
@@ -141,17 +153,20 @@ def __closest_plane_maya(
 					yield vec
 				continue
 
-			if isinstance(pos, (_Iterable, _Iterator)):
-				px, py, pz = vector_gen(pos)
-				yield vector(px, py, pz)
+			try:
+				pos = iter(pos)
+			except TypeError:
+				continue
 
-	positions = list(positions)
+			yield vector(vector_gen(pos))
+
+	positions = list(cleanup_pos(positions))
 
 	num_p = len(positions)
-	averagePosition = vector()
+	average_pos = vector()
 	for point in positions:
-		averagePosition += point
-	centroid = averagePosition / num_p
+		average_pos += point
+	centroid = vector(average_pos / float(num_p))
 
 	# loc = 'derp'
 	# loc = cmds.spaceLocator(n='derp', a=True)
@@ -185,7 +200,11 @@ def __closest_plane_maya(
 
 	# X
 	det_x = yy * zz - yz * yz
-	axis_dir = vector(det_x, (xz * yz - xy * zz), (xy * yz - xz * yy))
+	axis_dir = vector(
+		det_x,
+		(xz * yz - xy * zz),
+		(xy * yz - xz * yy)
+	)
 	weight = det_x * det_x
 	if (weighted_dir * axis_dir) < 0.0:
 		weight = -weight
