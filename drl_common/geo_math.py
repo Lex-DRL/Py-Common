@@ -66,8 +66,8 @@ def vector_gen(components, size=3):
 		yield 0
 
 
-def points_closest_plane(
-	positions  # type: _t.Sequence[api.MVector]
+def __closest_plane_maya(
+	positions  # type: _t.Sequence[_t.Sequence]
 ):
 	"""
 	https://gist.github.com/RedForty/9fc37bc8ad647256177c0749065ac262
@@ -78,14 +78,11 @@ def points_closest_plane(
 	http://www.ilikebigbits.com/blog/2017/9/24/fitting-a-plane-to-noisy-points-in-3d
 	Optionally, you can feed it a plane and it will merely position and orient it
 	"""
-	if not positions:  # Validate input
-		return None
-
-	if __is_maya:
-		from maya import cmds
-		from maya.api import OpenMaya as api
-		from pymel import core as pm
-		from drl.for_maya.ls.convert import components as comp
+	from maya import cmds
+	# noinspection PyPep8Naming
+	from maya.api import OpenMaya as api
+	from pymel import core as pm
+	from drl.for_maya.ls.convert import components as comp
 
 	# noinspection PyPep8Naming
 	def vector(*vector_comps):
@@ -100,7 +97,7 @@ def points_closest_plane(
 		# noinspection PyArgumentList
 		return api.MVector(*vector_comps)
 
-	def cleanup_pos_as_maya(iterable):
+	def cleanup_pos(iterable):
 		"""
 		A generator that turns whatever input is given
 		to an iterable of MVector items.
@@ -111,10 +108,10 @@ def points_closest_plane(
 
 		Anything else is simply filtered out.
 		"""
-		def _process_comps(comps):
+		def _comps_to_positions(comps):
 			"""
 			A generator, converting a given comp(s) to vertices
-			and then reading their positions.
+			and then - to their positions.
 			"""
 			comps = (c for c in comps if isinstance(c, pm.Component))
 			verts = set(
@@ -126,7 +123,7 @@ def points_closest_plane(
 
 		# we may have a single item, which corresponds to multiple vertices:
 		if isinstance(iterable, _str_t) or isinstance(iterable, pm.Component):
-			for vec in _process_comps(pm.ls(iterable)):
+			for vec in _comps_to_positions(pm.ls(iterable)):
 				yield vec
 			return
 
@@ -140,7 +137,7 @@ def points_closest_plane(
 				continue
 
 			if isinstance(pos, _str_t) or isinstance(pos, pm.Component):
-				for vec in _process_comps(pm.ls(pos)):
+				for vec in _comps_to_positions(pm.ls(pos)):
 					yield vec
 				continue
 
@@ -216,3 +213,31 @@ def points_closest_plane(
 	plane = cmds.polyPlane(name='bestFitPlane', width=10, height=10, sx=1, sy=1)
 	cmds.xform(plane, ro=angle, t=centroid)
 	return plane
+
+
+def __closest_plane_numpy(
+	positions  # type: _t.Sequence[_t.Sequence]
+):
+	try:
+		import numpy as np
+	except ImportError:
+		import modules as _mdl
+		_mdl.pip_install('numpy', upgrade=False)
+		import numpy as np
+	# TODO: non-maya function, using numpy
+
+
+def points_closest_plane(
+	positions  # type: _t.Sequence[_t.Sequence]
+):
+	# just early exit if positions is either a string or not a meaningful sequence:
+	if isinstance(positions, _str_t) or not(
+		positions and
+		isinstance(positions, (_Iterable, _Iterator))
+	):  # Validate input
+		return None
+
+	if __is_maya:
+		return __closest_plane_maya(positions)
+	else:
+		return __closest_plane_numpy(positions)
