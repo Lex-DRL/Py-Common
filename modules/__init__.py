@@ -34,7 +34,11 @@ class PipError(ImportError):
 			return _err_t.UNKNOWN
 
 	# noinspection PyShadowingBuiltins
-	def __init__(self, message='', type=_err_t.UNKNOWN):
+	def __init__(
+		self,
+		message='',  # type: _str_hint
+		type=_err_t.UNKNOWN
+	):
 		super(PipError, self).__init__(message)
 		self.__type = self.__cleanup_type(type)
 		self.args = (message, type)
