@@ -1,12 +1,19 @@
 __author__ = 'DRL'
 
 import string as _string
-from collections import Iterable as _Iterable, Iterator as _Iterator
-from . import errors as err
-from .py_2_3 import str_t as _str_t, str_hint as _str_hint
+from collections import (
+	Iterable as _Iterable,
+	Iterator as _Iterator
+)
+from .py_2_3 import (
+	str_t as _str_t,
+	str_hint as _str_hint
+)
+from . import errors as _err
 
 try:
-	# support type hints:
+	# support type hints in Python 3:
+	# noinspection PyUnresolvedReferences
 	import typing as _t
 except ImportError:
 	pass
@@ -176,7 +183,7 @@ def remove_duplicates(items=None):
 	:param items: list or tuple
 	:return: depending on the input, either list or tuple, in which each element is unique.
 	"""
-	err.WrongTypeError(items, (list, tuple), 'items').raise_if_needed()
+	_err.WrongTypeError(items, (list, tuple), 'items').raise_if_needed()
 	seen = set()
 	seen_add = seen.add
 	res = [
@@ -188,7 +195,6 @@ def remove_duplicates(items=None):
 	return res
 
 
-
 def list_difference(source_list, subtracted_list):
 	"""
 	Removes all occurrences of 2nd list elements from the 1st list.
@@ -197,10 +203,10 @@ def list_difference(source_list, subtracted_list):
 	:param subtracted_list: list or tuple
 	:return: list or tuple
 	"""
-	err.WrongTypeError(
+	_err.WrongTypeError(
 		subtracted_list, (list, tuple), 'subtracted_list'
 	).raise_if_needed()
-	err.WrongTypeError(source_list, (list, tuple), 'source_list').raise_if_needed()
+	_err.WrongTypeError(source_list, (list, tuple), 'source_list').raise_if_needed()
 	res = source_list[:]
 	if not isinstance(res, list):
 		res = list(res)
@@ -211,7 +217,6 @@ def list_difference(source_list, subtracted_list):
 	if isinstance(source_list, tuple):
 		res = tuple(res)
 	return res
-
 
 
 def camel_case(string='', punctuation_to_underscores=True, small_first_letter=True):
@@ -255,8 +260,8 @@ def to_ranges_generator(iterable):
 	for key, range_group in itertools.groupby(
 		enumerate(iterable),  # pairs of item's id in the list and it's actual value
 		lambda (itm_id, val): val - itm_id
-			# How much the current value is offset from it's index.
-			# Each range will have the same offset, so they'll end up in the same group.
+		# ^ How much the current value is offset from it's index.
+		# Each range will have the same offset, so they'll end up in the same group.
 	):
 		range_group = list(range_group)
 		yield (
@@ -283,6 +288,7 @@ def to_ranges(iterable, to_tuple=True):
 	return out_type(gen)
 
 
+# noinspection PyIncorrectDocstring
 def group_items(items, key_f=None):
 	"""
 	Turns a plain iterable of items to a groups of items (list of tuples).
@@ -301,11 +307,15 @@ def group_items(items, key_f=None):
 		* Groups contain the actual items.
 	"""
 	if key_f is None or not callable(key_f):
-		key_f = lambda x: repr(x)
+		key_f = repr
 
 	grouped = dict()  # start as dict, for easier grouping
 	grouped_setdefault = grouped.setdefault
-	get_group = lambda key: grouped_setdefault(key, [])  # init new list, if necessary
+
+	def get_group(key):
+		# init new list, if necessary:
+		return grouped_setdefault(key, [])
+
 	for i in items:
 		get_group(key_f(i)).append(i)
 
@@ -317,7 +327,8 @@ def group_items(items, key_f=None):
 	]
 
 
-def flatten_gen(possibly_iterable):
+# noinspection PyIncorrectDocstring
+def flatten_gen(possibly_iterable, bruteforce=True, keep_strings=True):
 	"""
 	Generator turning any input to a flat sequence.
 	the generator is recursive, so it can handle (almost)
@@ -328,14 +339,43 @@ def flatten_gen(possibly_iterable):
 		* 4 -> (4,)
 		* [4, 5] -> (4, 5)
 		* [4, (5, 6), 7, (['aaa'], [8], [{9}, 10])] -> (4, 5, 6, 7, 'aaa', 8, 9, 10)
+
+	:param bruteforce:
+		* **True**: Detect nested iterables by actually attempting to iterate over them.
+		*
+			**False**: Only classes that strictly comply to the pythonic definition
+			of iterables are considered those. For example, a class can have
+			`__getitem__()` and `__len__()` methods defined, but it's still **NOT**
+			considered iterable because it doesn't have an `__iter__()` method.
+
+		You may want to disable bruteforce to intentionally avoid going inside those
+		"partially-compliant" iterables, but most of the time enabling it
+		gives the most predictable result: anything that CAN be iterated - WILL be iterated.
+	:param keep_strings:
+		* **True**: nested strings are kept intact.
+		*
+			**False**: string-like types are treated as iterables and therefore
+			are split into individual characters.
 	"""
-	if isinstance(possibly_iterable, _str_t):
+	if keep_strings and isinstance(possibly_iterable, _str_t):
 		# string
-		yield possibly_iterable  # type: _str_hint
-	elif isinstance(possibly_iterable, (_Iterable, _Iterator)):
-		# iterable
-		for el in possibly_iterable:
-			for sub in flatten_gen(el):
-				yield sub  # type: _t.Any
+		yield possibly_iterable
+
+	if bruteforce:
+		# we try to detect non-iterable by actually attempting to iterate over it:
+		try:
+			possibly_iterable = iter(possibly_iterable)
+		except TypeError:
+			yield possibly_iterable
+			return
 	else:
-		yield possibly_iterable  # type: _t.Any
+		# only those classes inherited from built-in iterable classes
+		# are considered iterables:
+		if not isinstance(possibly_iterable, (_Iterable, _Iterator)):
+			yield possibly_iterable
+			return
+
+	# it is indeed an iterable:
+	for el in possibly_iterable:
+		for sub in flatten_gen(el):
+			yield sub
