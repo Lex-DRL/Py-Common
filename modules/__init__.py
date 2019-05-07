@@ -9,7 +9,6 @@ try:
 	import typing as _t
 except ImportError:
 	pass
-import string as _string
 from drl_common.utils import flatten_gen as _flatten
 from drl_common.py_2_3 import (
 	str_t as _str_t,
