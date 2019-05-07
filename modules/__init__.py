@@ -1,10 +1,16 @@
 __author__ = 'Lex Darlog (DRL)'
 
+from . import pip_error_types as _err_t
+import collections as _col
+
 try:
 	# support type hints in Python 3:
-	from typing import *
+	# noinspection PyUnresolvedReferences
+	import typing as _t
 except ImportError:
 	pass
+import string as _string
+from drl_common.utils import flatten_gen as _flatten
 from drl_common.py_2_3 import (
 	str_t as _str_t,
 	str_hint as _str_hint
@@ -15,15 +21,36 @@ class PipError(ImportError):
 	"""
 	A subset of `ImportError` signaling that there was some error with pip.
 	"""
-	pass
+	@staticmethod
+	def __cleanup_type(error_type):
+		"""
+		Ensure that the provided error-type-code is supported one.
+		Otherwise, set it to unknown.
+		"""
+		try:
+			type_key = _err_t.type_key(error_type)
+			return _err_t.ALL_TYPES[type_key]
+		except KeyError:
+			return _err_t.UNKNOWN
+
+	# noinspection PyShadowingBuiltins
+	def __init__(self, message='', type=_err_t.UNKNOWN):
+		super(PipError, self).__init__(message)
+		self.__type = self.__cleanup_type(type)
+		self.args = (message, type)
+
+	@property
+	def type(self):
+		return self.__type
 
 
 # noinspection PyIncorrectDocstring
 def pip_install(
-	module_names,  # type: Union[_str_hint, Iterable[_str_hint]]
+	module_names,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
 	upgrade=True,
 	force_reinstall=False
 ):
+	# noinspection SpellCheckingInspection
 	"""
 	A wrapper function, installing a module(s) via PIP in a convenient way,
 	regardless of the Python and PIP version.
@@ -42,20 +69,40 @@ def pip_install(
 
 		... and even update the PIP itself by passing it as the 1st module:
 			``pip_install('pip chardet tzlocal')``
-	"""
-	if isinstance(module_names, _str_t):
-		module_names = module_names.split()
-	module_names = filter(None, module_names)
-	module_names = [
-		(
-			m if isinstance(m, _str_t) else str(m)
-		).strip()
-		for m in module_names
-	]  # type: List[_str_hint]
-	module_names = filter(None, module_names)
+		"""
 
-	# TODO: there's only basic clean-up and split by spaces.
-	# TODO: Should also handle commas and dots.
+	def _cleanup_names_arg_gen(names):
+		"""
+		Initial cleanup of provided module names.
+		The resulting sequence is generator.
+		"""
+		if isinstance(names, _str_t):
+			names = names.split()
+		if not isinstance(names, (_col.Iterable, _col.Iterator)):
+			return
+
+		for arg1 in _flatten(filter(None, names)):
+			if not isinstance(arg1, _str_t):
+				continue
+			arg1 = arg1.strip()
+			if not arg1:
+				continue
+
+			# We may need to split the given strings to multiple arguments.
+			# But many of the common separators may actually be used with intention:
+			# pip install SomePackage-1.0-py2.py3-none-any.whl
+			# pip install 'SomePackage>=1.0.4'
+			# pip install 'SomeProject[foo, bar]'
+			# pip install 'SomeProject >=1.2,<2.0'
+
+			# So, the only possible separators left are:
+			for arg2 in arg1.split(';|'):
+				arg2 = arg2.strip()
+				if not arg2:
+					continue
+				yield arg2
+
+	module_names = list(_cleanup_names_arg_gen(module_names))
 
 	if not module_names:
 		return
@@ -81,10 +128,11 @@ def pip_install(
 			from pip import _internal as pip_internal
 			main_f = pip_internal.main
 		except (AttributeError, ImportError):
-			raise PipError("PIP isn't installed or can't be found")
+			raise PipError("PIP isn't installed or can't be found", type=_err_t.NO_PIP)
 	main_f(pip_args)
 
 	try:
+		# noinspection PyUnresolvedReferences
 		import importlib
 	except ImportError:
 		# there's no importlib module.
@@ -107,5 +155,6 @@ def pip_install(
 		raise PipError(
 			"The following modules can't be imported. "
 			"Probably because they were just installed by PIP and "
-			"Python interpreter needs to be restarted first:\n" + '\n'.join(not_importable)
+			"Python interpreter needs to be restarted first:\n" + '\n'.join(not_importable),
+			_err_t.MODULE_CANT_IMPORT
 		)
