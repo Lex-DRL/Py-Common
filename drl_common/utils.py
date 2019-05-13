@@ -360,6 +360,7 @@ def flatten_gen(possibly_iterable, bruteforce=True, keep_strings=True):
 	if keep_strings and isinstance(possibly_iterable, _str_t):
 		# string
 		yield possibly_iterable
+		return
 
 	if bruteforce:
 		# we try to detect non-iterable by actually attempting to iterate over it:
