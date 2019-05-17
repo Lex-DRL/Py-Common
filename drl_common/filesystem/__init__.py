@@ -824,7 +824,9 @@ def write_file_lines(
 
 def dir_tree_gen(
 	root,  # type: _str_hint
-	topdown=True, onerror=None, followlinks=False,
+	topdown=True,
+	onerror=None,  # type: _t.Optional[_t.Callable[[OSError], _t.Any]]
+	followlinks=False,
 	trailing_slash=False
 ):
 	"""
