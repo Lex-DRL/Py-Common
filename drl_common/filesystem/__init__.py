@@ -5,8 +5,16 @@ import io
 from os import path as _pth
 import shutil as sh
 
-from drl_common.py_2_3 import *
-_t = typing
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_hint as _str_hint
+)
+try:
+	# support type hints in Python 3:
+	# noinspection PyUnresolvedReferences
+	import typing as _t
+except ImportError:
+	pass
 
 import drl_common.errors as err
 from drl_common import utils
@@ -179,7 +187,7 @@ def __convert_path_slashes(path, wrong_slash='\\', right_slash='/', trailing_sla
 	if not path:
 		return ''
 
-	assert isinstance(path, str_t)
+	assert isinstance(path, _str_t)
 	path = path.replace(wrong_slash, right_slash)
 	if not (trailing_slash is None):
 		path = path.rstrip(right_slash)
@@ -423,7 +431,9 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 		What to do if a parent folder is actually a file itself:
 			* 0/False: Nothing. Error is thrown.
 			* 1/True: Remove file and create folder with it's name.
-			* 2 or more when called from Maya: display interactive dialog allowing a user to choose. When called outside of Maya, considered as <True>.
+			*
+				2 or more when called from Maya: display interactive dialog allowing a user to choose.
+				When called outside of Maya, considered as <True>.
 	:param remove_file:
 		Whether to automatically remove a file at the given path:
 			* 0/False: Nothing. Error is thrown.
@@ -446,7 +456,7 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 	"""
 	path = ensure_breadcrumbs_are_folders(
 		path, overwrite_folders
-	)  # type: _t.Union(str, unicode)
+	)  # type: _str_hint
 	# it's guaranteed to have no trailing slash now
 
 	if not os.path.exists(path):
@@ -541,6 +551,7 @@ def detect_file_encoding(
 	if isinstance(mode, float):
 		mode = int(mode)
 	if not isinstance(mode, int):
+		# noinspection PyBroadException,PyPep8
 		try:
 			mode = int(mode)
 		except:
@@ -627,9 +638,10 @@ def detect_file_encoding(
 
 	def _mode_unicode_dammit(bytes_string):
 		# u'<p>I just \u201clove\u201d Microsoft Word\u2019s smart quotes</p>'
+		# noinspection PyProtectedMember
 		from bs4 import UnicodeDammit
-		detected = UnicodeDammit(bytes_string)
-		res_enc = detected.original_encoding  # type: str
+		detected_dammit = UnicodeDammit(bytes_string)
+		res_enc = detected_dammit.original_encoding  # type: str
 		return res_enc, 2.5
 
 	if mode == 0 or mode > 2:
@@ -648,7 +660,7 @@ def detect_file_encoding(
 
 	try:
 		import chardet
-	except ImportError as er_imp:
+	except ImportError:
 		_inst('chardet')
 
 	if mode == 1:
@@ -658,8 +670,9 @@ def detect_file_encoding(
 	# the 'UnicodeDammit+chardet' mode if we got here
 
 	try:
+		# noinspection PyProtectedMember
 		from bs4 import UnicodeDammit
-	except ImportError as er_imp:
+	except ImportError:
 		_inst('beautifulsoup4')
 
 	return _mode_unicode_dammit(raw)
@@ -667,7 +680,7 @@ def detect_file_encoding(
 
 def read_file_lines(
 	file_path, encoding=None, strip_newline_char=True,
-	line_process_f=None  # type: _t.Optional[_t.Callable[[str_hint], str_hint]]
+	line_process_f=None  # type: _t.Optional[_t.Callable[[_str_hint], _str_hint]]
 ):
 	"""
 	High-level function reading a file at as list of lines.
@@ -699,12 +712,12 @@ def read_file_lines(
 	error_check.file_readable(file_path)
 
 	def _rstrip_with_processing(
-		line_str  # type: str_hint
+		line_str  # type: _str_hint
 	):
 		return line_process_f(line_str.rstrip('\r\n'))
 
 	def _rstrip_only(
-		line_str  # type: str_hint
+		line_str  # type: _str_hint
 	):
 		return line_str.rstrip('\r\n')
 
@@ -739,9 +752,9 @@ def read_file_lines(
 
 
 def read_file_lines_best_enc(
-	file_path,  # type: str_hint
+	file_path,  # type: _str_hint
 	strip_newline_char=True,
-	line_process_f=None,  # type: _t.Optional[_t.Callable[[str_hint], str_hint]]
+	line_process_f=None,  # type: _t.Optional[_t.Callable[[_str_hint], _str_hint]]
 	detect_limit=64*1024,  # 64 Kb
 	detect_mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT,
 	sure_thresh=0.5
@@ -780,8 +793,8 @@ def read_file_lines_best_enc(
 
 
 def write_file_lines(
-	file_path,  # type: str_hint
-	lines,  # type: _t.Union[str_hint, _t.Iterable[str_hint]]
+	file_path,  # type: _str_hint
+	lines,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
 	encoding=None,  # type: _t.Optional[str]
 	newline='\n',  # type: _t.Optional[str]
 	newline_included=False
@@ -799,7 +812,7 @@ def write_file_lines(
 
 	try:
 		with open_f() as fl:
-			if isinstance(lines, str_t):
+			if isinstance(lines, _str_t):
 				fl.write(lines)
 			else:
 				if (newline is None or newline != '') and not newline_included:
