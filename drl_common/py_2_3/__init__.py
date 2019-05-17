@@ -42,16 +42,15 @@ except:
 	t_strict_unicode = str
 	t_strict_str = bytes
 
-str_hint = str
 # noinspection PyBroadException,PyPep8
 try:
-	str_hint = typing.Union[str_hint, unicode]
+	str_hint = typing.Union[str, unicode]
 except:
 	# noinspection PyBroadException,PyPep8
 	try:
-		str_hint = typing.Union[str_hint, bytes]
+		str_hint = typing.Union[str, bytes]
 	except:
-		pass
+		str_hint = str
 
 # noinspection PyBroadException,PyPep8
 # try:
