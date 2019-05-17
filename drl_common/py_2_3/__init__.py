@@ -47,14 +47,14 @@ str_hint = str
 try:
 	str_hint = typing.Union[str_hint, unicode]
 except:
-	pass
+	# noinspection PyBroadException,PyPep8
+	try:
+		str_hint = typing.Union[str_hint, bytes]
+	except:
+		pass
+
 # noinspection PyBroadException,PyPep8
-try:
-	str_hint = typing.Union[str_hint, bytes]
-except:
-	pass
-# noinspection PyBroadException,PyPep8
-try:
-	str_hint = typing.Union[str_hint, typing.AnyStr]
-except:
-	pass
+# try:
+# 	str_hint = typing.Union[str_hint, typing.AnyStr]
+# except:
+# 	pass
