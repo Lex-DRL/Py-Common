@@ -820,3 +820,48 @@ def write_file_lines(
 				fl.writelines(lines)
 	except IOError:
 		raise errors.NotWriteable(file_path)
+
+
+def dir_tree_gen(
+	root,  # type: _str_hint
+	topdown=True, onerror=None, followlinks=False,
+	trailing_slash=False
+):
+	"""
+	A wrapper on top of `os.walk()`, providing a flat sequence of the whole directory tree.
+	Path separators are always unix-style slashes.
+
+	:param trailing_slash: If `True`, all the directories will have a trailing slash.
+	"""
+	if not (root and isinstance(root, _str_t)):
+		return
+	# root = r'f:\1-Archive\Photos\_Phone-Camera\chair'
+	# root = 'f'
+	root = root[0] + root[1:].replace('\\', '/').rstrip('/')
+
+	def _cleanup_cur_root_trailed(
+		rt  # type: _str_hint
+	):
+		rt = rt.replace('\\', '/')
+		trailed = rt[0] + rt[1:].rstrip('/') + '/'
+		if trailed == '//':
+			trailed = trailed[0]  # to preserve unicode
+		return trailed, trailed
+
+	def _cleanup_cur_root_no_trail(
+		rt  # type: _str_hint
+	):
+		rt = rt.replace('\\', '/')
+		no_trail = rt[0] + rt[1:].rstrip('/')
+		trailed = no_trail + '/'
+		if trailed == '//':
+			trailed = trailed[0]  # to preserve unicode
+		return no_trail, trailed
+
+	_cleanup_cur_root = _cleanup_cur_root_trailed if trailing_slash else _cleanup_cur_root_no_trail
+
+	for cur_root, dirs, files in os.walk(root, topdown=topdown, onerror=onerror, followlinks=followlinks):
+		cur_root, cur_trailed = _cleanup_cur_root(cur_root)
+		yield cur_root
+		for fl in files:
+			yield cur_trailed + fl
