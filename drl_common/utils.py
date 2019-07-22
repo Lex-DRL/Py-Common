@@ -98,7 +98,7 @@ class Container(object):
 		return res
 
 	@classmethod
-	def __proper_items(cls, **kwargs):
+	def __proper_items(cls, kwargs):
 		"""
 		Filter out any items (i.e., key-value pairs) which keys are somehow unsupported.
 		I.e., with a key that:
@@ -129,14 +129,14 @@ class Container(object):
 	def __init__(self, **kwargs):
 		super(Container, self).__init__()
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(**kwargs))
+			dict(self.__class__.__proper_items(kwargs))
 		)
 
 	def items(self):
 		"""
 		List of key-value tuple pairs of children.
 		"""
-		return self.__class__.__proper_items(**self.__dict__)
+		return self.__class__.__proper_items(self.__dict__)
 
 	def as_dict(self):
 		"""
