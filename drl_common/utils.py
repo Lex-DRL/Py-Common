@@ -146,7 +146,7 @@ class Container(object):
 
 	def update(self, **kwargs):
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(**kwargs))
+			dict(self.__class__.__proper_items(kwargs))
 		)
 
 	def __repr__(self):
