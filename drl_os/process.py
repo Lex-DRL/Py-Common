@@ -35,7 +35,12 @@ except ImportError:
 
 # noinspection PyBroadException
 try:
+	_h_arg_proc = _t.Union[int, psutil.Process]
+	_h_arg_proc = _t.Union[_h_arg_proc, _t.Iterable[_h_arg_proc]]
+	_h_arg_nm = _t.Union[int, float, psutil.Process, _str_hint]
+	_h_arg_nm = _t.Union[_h_arg_nm, _t.Iterable[_h_arg_nm]]
 	_h_l_proc = _t.List[psutil.Process]
+	_h_s_proc = _t.Set[psutil.Process]
 	_h_opt_call = _t.Optional[_t.Callable[[psutil.Process], _t.Any]]
 	_h_timeout = _t.Optional[_t.Union[int, float]]
 except:
@@ -48,32 +53,17 @@ from . import platform as _pf
 from drl_common import errors as _err
 
 
-def __terminate_arg_cleanup(
-	process,  # type: psutil.Process
-	timeout,  # type: _h_timeout
-	on_terminate  # type: _h_opt_call
-):
-	_err.WrongTypeError(
-		process, psutil.Process, 'process'
-	).raise_if_needed()
-	if not callable(on_terminate):
-		on_terminate = None
-	if not(isinstance(timeout, (int, float)) and timeout > 0):
-		timeout = None
-	return process, timeout, on_terminate
-
-
 def __terminate_windows(
-	process,  # type: psutil.Process
+	root_processes,  # type: _h_l_proc
 	tree=False,
 	timeout=20,  # type: _h_timeout
 	force=False,
 	on_terminate=None  # type: _h_opt_call
 ):
 	"""
-	High-level method to terminate a process.
+	Low-level method to terminate a list of processes.
 
-	:param process: A process to kill.
+	:param root_processes: A process list to kill.
 	:param tree: End the entire process tree, with all children.
 	:param timeout:
 		How long to wait for the process to finish (seconds), in graceful-kill mode.
@@ -83,39 +73,73 @@ def __terminate_windows(
 		A function which gets called when one of the processes being waited on
 		is terminated and a `Process` instance is passed as callback argument.
 	"""
-	process, timeout, on_terminate = __terminate_arg_cleanup(
-		process, timeout, on_terminate
-	)
+	whole_tree = list()  # type: _h_l_proc
+	# avoiding duplicates:
+	seen = set()  # type: _h_s_proc
+	seen_add = seen.add
+	root_processes = [
+		x for x in root_processes
+		if not (x in seen or seen_add(x))
+	]
+	if not root_processes:
+		return
 
 	cmd = ['taskkill']
 	if force:
 		cmd.append('/f')
-	cmd.extend(['/pid', str(process.pid)])
-	whole_tree = list()  # type: _h_l_proc
 	if tree:
-		whole_tree = process.children(recursive=True)
 		cmd.append('/t')
-	whole_tree.append(process)
+	for p in root_processes:
+		if tree:
+			whole_tree.extend([
+				x for x in p.children(recursive=True)
+				if not (x in seen or seen_add(x))
+			])
+		whole_tree.append(p)
+		cmd.extend(['/pid', str(p.pid)])
+
+	print (
+		"Terminating {} with the command:\n{}".format(
+			(
+				'a "{}" process'.format(root_processes[0].name())
+				if len(root_processes) == 1
+				else 'processes ({})'.format(
+					', '.join(x.name() for x in root_processes)
+				)
+			),
+			' '.join(cmd)
+		)
+	)
 	_call(cmd)
 
 	gone, still_alive = psutil.wait_procs(
 		whole_tree, timeout=timeout, callback=on_terminate
-	)  # type: _t.Tuple[_h_l_proc, _h_l_proc]
+	)  # type: _h_l_proc
+	if not still_alive:
+		return
+
+	print(
+		'The "{}" process is still running. Force-killing it.'.format(still_alive[0].name())
+		if len(still_alive) == 1
+		else "Some processes are still running. Force-killing them:\n{}".format(
+			', '.join(p.name() for p in still_alive)
+		)
+	)
 	for p in still_alive:
 		p.kill()
 
 
 def __terminate_unix(
-	process,  # type: psutil.Process
+	root_processes,  # type: _h_l_proc
 	tree=False,
 	timeout=20,  # type: _h_timeout
 	force=False,
 	on_terminate=None  # type: _h_opt_call
 ):
 	"""
-	High-level method to terminate a process.
+	Low-level method to terminate a list of processes.
 
-	:param process: A process to kill.
+	:param root_processes: A process list to kill.
 	:param tree: End the entire process tree, with all children.
 	:param timeout:
 		How long to wait for the process to finish (seconds), in graceful-kill mode.
@@ -125,39 +149,110 @@ def __terminate_unix(
 		A function which gets called when one of the processes being waited on
 		is terminated and a `Process` instance is passed as callback argument.
 	"""
-	process, timeout, on_terminate = __terminate_arg_cleanup(
-		process, timeout, on_terminate
-	)
 	whole_tree = list()  # type: _h_l_proc
-	if tree:
-		whole_tree = process.children(recursive=True)
-	whole_tree.append(process)
+	# avoiding duplicates:
+	seen = set()  # type: _h_s_proc
+	seen_add = seen.add
+	root_processes = [
+		x for x in root_processes
+		if not (x in seen or seen_add(x))
+	]
+	if not root_processes:
+		return
+
+	for p in root_processes:
+		if tree:
+			whole_tree.extend([
+				x for x in p.children(recursive=True)
+				if not (x in seen or seen_add(x))
+			])
+		whole_tree.append(p)
+
+	print (
+		'Terminating a "{}" process'.format(root_processes[0].name())
+		if len(root_processes) == 1
+		else 'Terminating processes ({})'.format(', '.join(
+			x.name() for x in root_processes
+		))
+	)
 
 	if not force:
 		for p in whole_tree:
 			p.terminate()
 		gone, still_alive = psutil.wait_procs(
 			whole_tree, timeout=timeout, callback=on_terminate
-		)  # type: _t.Tuple[_h_l_proc, _h_l_proc]
+		)  # type: _h_l_proc
+		if not still_alive:
+			return
+		print(
+			'The "{}" process is still running. Force-killing it.'.format(still_alive[0].name())
+			if len(still_alive) == 1
+			else "Some processes are still running. Force-killing them:\n{}".format(
+				', '.join(p.name() for p in still_alive)
+			)
+		)
 		whole_tree = still_alive
 
 	for p in whole_tree:
 		p.kill()
 
 
-terminate = __terminate_windows if _pf.IS_WINDOWS else __terminate_unix
-terminate.__doc__ = """
-High-level method to terminate a process.
+__terminate_main = __terminate_windows if _pf.IS_WINDOWS else __terminate_unix
 
-:param process: A process to kill.
-:param tree: End the entire process tree, with all children.
-:param timeout:
-	How long to wait for the process to finish (seconds), in graceful-kill mode.
-:param force: Instant-kill instead of graceful termination (waiting to end).
-:param on_terminate:
-	A function which gets called when one of the processes being waited on
-	is terminated and a `Process` instance is passed as callback argument.
-"""
+
+def __terminate_process_arg_cleanup(proc):
+	if isinstance(proc, psutil.Process):
+		return [proc]
+
+	error = _err.WrongTypeError(proc, (psutil.Process, int), 'root_processes')
+
+	if isinstance(proc, _str_t):
+		raise error
+	if isinstance(proc, int):
+		return [psutil.Process(pid=proc)]
+	try:
+		proc = [x for x in proc]
+	except TypeError:
+		raise error
+	res = list()  # type: _h_l_proc
+	for p in proc:
+		res.extend(__terminate_process_arg_cleanup(p))
+	return res
+
+
+def terminate(
+	root_processes,  # type: _h_arg_proc
+	tree=False,
+	timeout=20,  # type: _h_timeout
+	force=False,
+	on_terminate=None  # type: _h_opt_call
+):
+	"""
+	High-level platform-independent method to terminate a list of processes.
+
+	:param root_processes:
+		A process list to kill. One of:
+		* `psutil.Process()` instance
+		* int - the PID of a process
+		* an iterable containing any of above
+	:param tree: End the entire process tree, with all children.
+	:param timeout:
+		How long to wait for the process to finish (seconds), in graceful-kill mode.
+	:param force:
+		Instant-kill instead of graceful termination (waiting to end).
+	:param on_terminate:
+		A function which gets called when one of the processes being waited on
+		is terminated and a `Process` instance is passed as callback argument.
+	"""
+	if not callable(on_terminate):
+		on_terminate = None
+	if not (isinstance(timeout, (int, float)) and timeout > 0):
+		timeout = None
+
+	__terminate_main(
+		__terminate_process_arg_cleanup(root_processes),
+		tree, timeout, force, on_terminate
+	)
 
 
 def __name_match_win(
@@ -172,12 +267,13 @@ def __name_match_win(
 _names_match = __name_match_win if _pf.IS_WINDOWS else _fm.fnmatchcase
 
 
-def _dummy_f(*args, **kwargs):
-	pass
+def _pass(*args):
+	return tuple(args)
 
 
-def terminate_by_name(
-	names,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+def __terminate_by_proc_str(
+	proc_str_f,  # type: _t.Callable[[psutil.Process], _str_hint]
+	proc_filters,  # type: _h_arg_nm
 	tree=False,
 	timeout=20,  # type: _h_timeout
 	force=False,
@@ -185,9 +281,91 @@ def terminate_by_name(
 	on_terminate=None  # type: _h_opt_call
 ):
 	"""
-	Kill all the processes matching to the given filters by name.
+	A wrapper for terminating processes that match the given filters
+	with some string generated from the process instance by the provided func.
 
-	:param names: Filename-filter(s). May contain wildcards ("tool*.exe")
+	The given filters may contain either ints, instances of `psutil.Process()`
+	or the actual string filters.
+	"""
+	if isinstance(proc_filters, _str_t):
+		proc_filters = [proc_filters]
+	try:
+		proc_filters = [n for n in proc_filters]
+	except TypeError:
+		proc_filters = [proc_filters]
+	if not proc_filters:
+		return
+
+	ints = [p for p in proc_filters if isinstance(p, int)]
+	ints.extend([int(p) for p in proc_filters if isinstance(p, float)])
+	ints.extend([p.pid for p in proc_filters if isinstance(p, psutil.Process)])
+	ints = set(ints)
+	str_names = [p for p in proc_filters if isinstance(p, _str_t)]
+
+	def match_ints(
+		process  # type: psutil.Process
+	):
+		return process.pid in ints
+
+	def match_names(
+		process  # type: psutil.Process
+	):
+		p_str = proc_str_f(process)
+		return any(_names_match(p_str, x) for x in str_names)
+
+	def match_both(
+		process  # type: psutil.Process
+	):
+		return match_ints(process) or match_names(process)
+
+	match = (
+		match_both if str_names else match_ints
+	) if ints else (
+		match_names if str_names else None
+	)
+
+	if match is None:
+		return
+
+	def do_on_match(
+		process  # type: psutil.Process
+	):
+		on_match(process)
+		return process
+
+	signal_match = do_on_match if callable(on_match) else _pass
+
+	processes = [signal_match(p) for p in psutil.process_iter() if match(p)]
+	terminate(processes, tree, timeout, force, on_terminate)
+
+
+def _get_proc_name(
+	proc  # type: psutil.Process
+):
+	return proc.name()
+
+
+def _get_proc_path(
+	proc  # type: psutil.Process
+):
+	return proc.exe()
+
+
+def terminate_by_name(
+	processes,  # type: _h_arg_nm
+	tree=False,
+	timeout=20,  # type: _h_timeout
+	force=False,
+	on_match=None,  # type: _h_opt_call
+	on_terminate=None  # type: _h_opt_call
+):
+	"""
+	Kill all the processes matching to the given filters by their name or PIDs.
+
+	:param processes:
+		Filename-filter(s). May contain:
+			* string names, including wildcards ("tool*.exe")
+			* PIDs
 	:param tree: End the entire process tree, with all children.
 	:param timeout:
 		How long to wait for the process to finish (seconds), in graceful-kill mode.
@@ -200,17 +378,14 @@ def terminate_by_name(
 		A function which gets called when one of the processes being waited on
 		is terminated and a `Process` instance is passed as callback argument.
 	"""
-	if not callable(on_match):
-		on_match = _dummy_f
-	for p in psutil.process_iter():
-		p_nm = p.name()
-		if any(_names_match(p_nm, x) for x in names):
-			on_match(p)
-			terminate(p, tree, timeout, force, on_terminate)
+	__terminate_by_proc_str(
+		_get_proc_name,
+		processes, tree, timeout, force, on_match, on_terminate
+	)
 
 
 def terminate_by_path(
-	paths,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+	processes,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
 	tree=False,
 	timeout=20,  # type: _h_timeout
 	force=False,
@@ -220,7 +395,10 @@ def terminate_by_path(
 	"""
 	Kill all the processes matching to the given filters by the full path.
 
-	:param paths: Filename-filter(s). May contain wildcards ("W:/tool*.exe")
+	:param processes:
+		Filename-filter(s). May contain:
+			* string paths, including wildcards ("W:/tool*.exe")
+			* PIDs
 	:param tree: End the entire process tree, with all children.
 	:param timeout:
 		How long to wait for the process to finish (seconds), in graceful-kill mode.
@@ -233,10 +411,7 @@ def terminate_by_path(
 		A function which gets called when one of the processes being waited on
 		is terminated and a `Process` instance is passed as callback argument.
 	"""
-	if not callable(on_match):
-		on_match = _dummy_f
-	for p in psutil.process_iter():
-		p_pth = p.exe()
-		if any(_names_match(p_pth, x) for x in paths):
-			on_match(p)
-			terminate(p, tree, timeout, force, on_terminate)
+	__terminate_by_proc_str(
+		_get_proc_path,
+		processes, tree, timeout, force, on_match, on_terminate
+	)
