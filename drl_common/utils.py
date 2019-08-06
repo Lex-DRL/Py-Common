@@ -18,6 +18,11 @@ try:
 except ImportError:
 	pass
 
+# allowed chars for the 1st char of a variable name:
+_var_name_start_chars = set(_string.ascii_letters + '_')
+# all allowed chars for a variable name:
+_var_name_chars = set(_string.ascii_letters + '_' + _string.digits)
+
 
 class DefaultTuple(tuple):
 	"""
@@ -69,6 +74,114 @@ class DefaultList(list):
 		)
 
 
+def _container_proper_name(
+	name,  # type: _str_t
+	class_reserved_children,  # type: _t.Set[_str_t]
+	seen_set,  # type: _t.Set[_str_t]
+	seen_set_add,  # type: _t.Callable[[str], None]
+):
+	"""
+	Whether the given name can be used as a container's member name.
+
+	:param name: The name to check
+	:param class_reserved_children:
+		A string set containing names reserved for the class members.
+	:param seen_set:
+		A set used to verify if the same name was used multiple times
+		during a single operation.
+	:param seen_set_add:
+		The set's add() method. Passed simply for performance reasons.
+	:return:
+		* ``True`` - if the name is OK.
+		* ``False`` - if not.
+	"""
+	return (
+		name
+		and isinstance(name, _str_t)
+		and name[0] in _var_name_start_chars
+		and all(c in _var_name_chars for c in name[1:])
+		# and not k.startswith('_')  # already covered by previous ^ condition
+		and name not in class_reserved_children
+		# ensure each key is unique and add it if it is:
+		and not (name in seen_set or seen_set_add(name))
+	)
+
+
+def _container_check_name(
+	name,  # type: _str_t
+	class_reserved_children,  # type: _t.Set[str]
+	seen_set,  # type: _t.Set[str]
+	seen_set_add,  # type: _t.Callable[[str], None]
+):
+	"""
+	Verify that the given name can be used as a container's member.
+	Raise an error if anything is wrong.
+
+	:param name: The name to check
+	:param class_reserved_children:
+		A string set containing names reserved for the class members.
+	:param seen_set:
+		A set used to verify if the same name was used multiple times
+		during a single operation.
+	:param seen_set_add:
+		The set's add() method. Passed simply for performance reasons.
+	:return: The passed name forcefully turned to a string.
+	"""
+	if not isinstance(name, _str_t):
+		raise TypeError(
+			"This can't be the name of the container's child: {}".format(repr(name))
+		)
+	if not name:
+		raise ValueError("The container's child can't have an empty name.")
+
+	if name[0] not in _var_name_start_chars:
+		raise ValueError(
+			"This can't be the name of the container's child "
+			"since it starts from an unsupported character: {}".format(name)
+		)
+	if not all(
+		c in _var_name_chars for c in name[1:]
+	):
+		raise ValueError(
+			"This can't be the name of the class member "
+			"since it contains an unsupported character: {}".format(name)
+		)
+	if not isinstance(name, str):
+		name = str(name)
+
+	if name in class_reserved_children:
+		raise ValueError(
+			"This name can't be used as the container's child "
+			"since the container object already has a class method "
+			"with the same name: {}".format(name)
+		)
+	if name in seen_set:
+		raise ValueError(
+			"Attempt to add the same container's child "
+			"multiple times at once: {}".format(name)
+		)
+	seen_set_add(name)
+
+	return name
+
+
+def _container_check_no_class_clash(
+	name,  # type: _str_t
+	class_reserved_children,  # type: _t.Set[str]
+	instance
+):
+	if not (name and isinstance(name, str)):
+		raise ValueError(
+			"The container's child can't have this name: {}".format(repr(name))
+		)
+	if name in class_reserved_children:
+		raise ValueError(
+			"The name of a container's class member \"{}\" is overridden "
+			"on the instance: {}".format(name, instance)
+		)
+	return name
+
+
 class Container(object):
 	"""
 	Just a dummy service class, acting like
@@ -94,59 +207,61 @@ class Container(object):
 		It's used to prevent users from overriding those children with their own
 		items of the same name.
 		"""
-		res = {nm for nm in dir(cls) if not nm.startswith('_')}  # type: _t.Set[str]
+		res = set(dir(cls))  # type: _t.Set[str]
 		return res
 
 	@classmethod
-	def __proper_items(cls, kwargs):
+	def __proper_items(
+		cls,
+		kwargs  # type: _t.Dict
+	):
 		"""
-		Filter out any items (i.e., key-value pairs) which keys are somehow unsupported.
-		I.e., with a key that:
-			* is empty or not a string at all
-			* starts with an unsupported character ('_' or not ascii)
-			* clashes with a class' built-in members.
+		Make sure all the given items (i.e., key-value pairs) have proper names.
 
-		The resulting items are always sorted by key.
-		Duplicated keys are removed but it's unclear which value is kept
-		since `kwargs` dict is unordered.
+		Throw an error if a key:
+			* is empty or not a string at all
+			* contains or starts from an unsupported character
+			* clashes with a class' built-in members.
+			* is passed multiple times
 		"""
 		seen = set()
 		seen_add = seen.add
 		class_children = cls._class_children()
-		return sorted(
-			(k, v) for k, v in
-			kwargs.iteritems()
-			if (
-				k
-				and isinstance(k, _str_t)
-				and k[0] in _string.ascii_letters
-				# and not k.startswith('_')  # already covered by previous ^ condition
-				and k not in class_children
-				and not(k in seen or seen_add(k))  # ensure each key is unique and add if it is
-			)
+		return (
+			(
+				_container_check_name(k, class_children, seen, seen_add),
+				v
+			) for k, v in kwargs.iteritems()
 		)
 
-	def __init__(self, **kwargs):
+	def __init__(self, **children):
 		super(Container, self).__init__()
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(kwargs))
+			dict(self.__class__.__proper_items(children))
+		)
+
+	def iteritems(self):
+		class_children = self.__class__._class_children()
+		return (
+			(_container_check_no_class_clash(k, class_children, self), v)
+			for k, v in self.__dict__.iteritems()
 		)
 
 	def items(self):
 		"""
 		List of key-value tuple pairs of children.
 		"""
-		return self.__class__.__proper_items(self.__dict__)
+		return sorted(self.iteritems())
 
 	def as_dict(self):
 		"""
 		A dictionary of children. You're safe to edit it.
 		"""
-		return dict(self.items())
+		return dict(self.iteritems())
 
-	def update(self, **kwargs):
+	def update(self, **children):
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(kwargs))
+			dict(self.__class__.__proper_items(children))
 		)
 
 	def __repr__(self):
