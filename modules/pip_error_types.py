@@ -17,13 +17,16 @@ MODULE_CANT_IMPORT = 2
 
 
 ALL_TYPES = {
-	_k: _v for _k, _v in locals().iteritems()
+	_k: _v for _k, _v in locals().items()
 	if not (
 		_k.startswith('_') or
 		_k in {'ALL_TYPES', }
 	)
 }  # type: _t.Dict[str, int]
 
+
+# for _k, _v in sorted(ALL_TYPES.iteritems()):
+# 	print('{} => {}'.format(_k, _v))
 
 __type_key_mappings = {
 	v: k for k, v in ALL_TYPES.iteritems()
