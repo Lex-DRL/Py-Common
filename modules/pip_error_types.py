@@ -17,10 +17,10 @@ MODULE_CANT_IMPORT = 2
 
 
 ALL_TYPES = {
-	k: v for k, v in locals().iteritems()
+	_k: _v for _k, _v in locals().iteritems()
 	if not (
-		k.startswith('_') or
-		k in {'ALL_TYPES', }
+		_k.startswith('_') or
+		_k in {'ALL_TYPES', }
 	)
 }  # type: _t.Dict[str, int]
 
@@ -30,7 +30,9 @@ __type_key_mappings = {
 }  # type: _t.Dict[int, str]
 
 
-def type_key(type_value):
+def type_key(
+	type_value  # type: int
+):
 	"""
 	Get the human-readable name of given errortype-code.
 	"""
