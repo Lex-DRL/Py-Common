@@ -182,7 +182,9 @@ class FileFilter(object):
 		return self.as_string()
 
 
-def __convert_path_slashes(path, wrong_slash='\\', right_slash='/', trailing_slash=None, leading_slash=0):
+def __convert_path_slashes(
+	path, wrong_slash='\\', right_slash='/', trailing_slash=None, leading_slash=0
+):
 	err.NotStringError(path, 'path').raise_if_needed()
 	if not path:
 		return ''

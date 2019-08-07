@@ -28,7 +28,7 @@ class PipError(ImportError):
 		"""
 		try:
 			type_key = _err_t.type_key(error_type)
-			return _err_t.ALL_TYPES[type_key]
+			return _err_t.all_types[type_key]
 		except KeyError:
 			return _err_t.UNKNOWN
 

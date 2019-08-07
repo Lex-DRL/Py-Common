@@ -18,6 +18,11 @@ try:
 except ImportError:
 	pass
 
+# allowed chars for the 1st char of a variable name:
+_var_name_start_chars = set(_string.ascii_letters + '_')
+# all allowed chars for a variable name:
+_var_name_chars = set(_string.ascii_letters + '_' + _string.digits)
+
 
 class DefaultTuple(tuple):
 	"""
@@ -69,6 +74,114 @@ class DefaultList(list):
 		)
 
 
+def _container_proper_name(
+	name,  # type: _str_t
+	class_reserved_children,  # type: _t.Set[_str_t]
+	seen_set,  # type: _t.Set[_str_t]
+	seen_set_add,  # type: _t.Callable[[str], None]
+):
+	"""
+	Whether the given name can be used as a container's member name.
+
+	:param name: The name to check
+	:param class_reserved_children:
+		A string set containing names reserved for the class members.
+	:param seen_set:
+		A set used to verify if the same name was used multiple times
+		during a single operation.
+	:param seen_set_add:
+		The set's add() method. Passed simply for performance reasons.
+	:return:
+		* ``True`` - if the name is OK.
+		* ``False`` - if not.
+	"""
+	return (
+		name
+		and isinstance(name, _str_t)
+		and name[0] in _var_name_start_chars
+		and all(c in _var_name_chars for c in name[1:])
+		# and not k.startswith('_')  # already covered by previous ^ condition
+		and name not in class_reserved_children
+		# ensure each key is unique and add it if it is:
+		and not (name in seen_set or seen_set_add(name))
+	)
+
+
+def _container_check_name(
+	name,  # type: _str_t
+	class_reserved_children,  # type: _t.Set[str]
+	seen_set,  # type: _t.Set[str]
+	seen_set_add,  # type: _t.Callable[[str], None]
+):
+	"""
+	Verify that the given name can be used as a container's member.
+	Raise an error if anything is wrong.
+
+	:param name: The name to check
+	:param class_reserved_children:
+		A string set containing names reserved for the class members.
+	:param seen_set:
+		A set used to verify if the same name was used multiple times
+		during a single operation.
+	:param seen_set_add:
+		The set's add() method. Passed simply for performance reasons.
+	:return: The passed name forcefully turned to a string.
+	"""
+	if not isinstance(name, _str_t):
+		raise TypeError(
+			"This can't be the name of the container's child: {}".format(repr(name))
+		)
+	if not name:
+		raise ValueError("The container's child can't have an empty name.")
+
+	if name[0] not in _var_name_start_chars:
+		raise ValueError(
+			"This can't be the name of the container's child "
+			"since it starts from an unsupported character: {}".format(name)
+		)
+	if not all(
+		c in _var_name_chars for c in name[1:]
+	):
+		raise ValueError(
+			"This can't be the name of the class member "
+			"since it contains an unsupported character: {}".format(name)
+		)
+	if not isinstance(name, str):
+		name = str(name)
+
+	if name in class_reserved_children:
+		raise ValueError(
+			"This name can't be used as the container's child "
+			"since the container object already has a class method "
+			"with the same name: {}".format(name)
+		)
+	if name in seen_set:
+		raise ValueError(
+			"Attempt to add the same container's child "
+			"multiple times at once: {}".format(name)
+		)
+	seen_set_add(name)
+
+	return name
+
+
+def _container_check_no_class_clash(
+	name,  # type: _str_t
+	class_reserved_children,  # type: _t.Set[str]
+	instance
+):
+	if not (name and isinstance(name, str)):
+		raise ValueError(
+			"The container's child can't have this name: {}".format(repr(name))
+		)
+	if name in class_reserved_children:
+		raise ValueError(
+			"The name of a container's class member \"{}\" is overridden "
+			"on the instance: {}".format(name, instance)
+		)
+	return name
+
+
 class Container(object):
 	"""
 	Just a dummy service class, acting like
@@ -94,59 +207,61 @@ class Container(object):
 		It's used to prevent users from overriding those children with their own
 		items of the same name.
 		"""
-		res = {nm for nm in dir(cls) if not nm.startswith('_')}  # type: _t.Set[str]
+		res = set(dir(cls))  # type: _t.Set[str]
 		return res
 
 	@classmethod
-	def __proper_items(cls, kwargs):
+	def __proper_items(
+		cls,
+		kwargs  # type: _t.Dict[str, _t.Any]
+	):
 		"""
-		Filter out any items (i.e., key-value pairs) which keys are somehow unsupported.
-		I.e., with a key that:
-			* is empty or not a string at all
-			* starts with an unsupported character ('_' or not ascii)
-			* clashes with a class' built-in members.
+		Make sure all the given items (i.e., key-value pairs) have proper names.
 
-		The resulting items are always sorted by key.
-		Duplicated keys are removed but it's unclear which value is kept
-		since `kwargs` dict is unordered.
+		Throw an error if a key:
+			* is empty or not a string at all
+			* contains or starts from an unsupported character
+			* clashes with a class' built-in members.
+			* is passed multiple times
 		"""
-		seen = set()
+		seen = set()  # type: _t.Set[str]
 		seen_add = seen.add
 		class_children = cls._class_children()
-		return sorted(
-			(k, v) for k, v in
-			kwargs.iteritems()
-			if (
-				k
-				and isinstance(k, _str_t)
-				and k[0] in _string.ascii_letters
-				# and not k.startswith('_')  # already covered by previous ^ condition
-				and k not in class_children
-				and not(k in seen or seen_add(k))  # ensure each key is unique and add if it is
-			)
+		return (
+			(
+				_container_check_name(k, class_children, seen, seen_add),
+				v
+			) for k, v in kwargs.iteritems()
 		)
 
-	def __init__(self, **kwargs):
+	def __init__(self, **children):
 		super(Container, self).__init__()
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(kwargs))
+			dict(self.__class__.__proper_items(children))
+		)
+
+	def iteritems(self):
+		class_children = self.__class__._class_children()
+		return (
+			(_container_check_no_class_clash(k, class_children, self), v)
+			for k, v in self.__dict__.iteritems()
 		)
 
 	def items(self):
 		"""
 		List of key-value tuple pairs of children.
 		"""
-		return self.__class__.__proper_items(self.__dict__)
+		return sorted(self.iteritems())
 
 	def as_dict(self):
 		"""
 		A dictionary of children. You're safe to edit it.
 		"""
-		return dict(self.items())
+		return dict(self.iteritems())
 
-	def update(self, **kwargs):
+	def update(self, **children):
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(kwargs))
+			dict(self.__class__.__proper_items(children))
 		)
 
 	def __repr__(self):
@@ -174,6 +289,215 @@ class Container(object):
 
 
 Dummy = Container  # fallback for a legacy code
+
+
+def _enum_check_errors(
+	name,  # type: str
+	value,  # type: int
+	seen_values_set,  # type: _t.Set[int]
+	seen_values_set_add,  # type: _t.Callable[[int], None]
+):
+	if not isinstance(value, int):
+		raise TypeError(
+			"Enum member {} should have int value. Got: {}".format(
+				repr(name), repr(value)
+			)
+		)
+	if value in seen_values_set:
+		raise ValueError(
+			"Enum can't have multiple members with the same value: {} -> {}".format(
+				name, value
+			)
+		)
+	seen_values_set_add(value)
+	return value
+
+
+def _enum_check_item(
+	name,  # type: _str_t
+	value,  # type: int
+	class_reserved_children,  # type: _t.Set[str]
+	seen_keys_set,  # type: _t.Set[str]
+	seen_keys_set_add,  # type: _t.Callable[[str], None]
+	seen_values_set,  # type: _t.Set[int]
+	seen_values_set_add,  # type: _t.Callable[[int], None]
+):
+	name = _container_check_name(
+		name, class_reserved_children, seen_keys_set, seen_keys_set_add
+	)
+	return (
+		name,
+		_enum_check_errors(name, value, seen_values_set, seen_values_set_add)
+	)
+
+
+def _enum_check_no_clash(
+	name,  # type: _str_t
+	value,  # type: int
+	class_reserved_children,  # type: _t.Set[str]
+	seen_values_set,  # type: _t.Set[int]
+	seen_values_set_add,  # type: _t.Callable[[int], None]
+	instance
+):
+	name = _container_check_no_class_clash(name, class_reserved_children, instance)
+	return (
+		name,
+		_enum_check_errors(name, value, seen_values_set, seen_values_set_add)
+	)
+
+
+_enum_internal = {
+	'__doc__',
+	'_Enum__doc__',
+	'_Enum__enum_name',
+	'_Enum__enum_default_val',
+	'_Enum__enum_default_key',
+	'_Enum__enum_dict',
+	'_Enum__all_keys',
+	'_Enum__all_values',
+	'_Enum__key_mappings',
+}
+
+
+class Enum(object):
+	"""
+	A modified version of ``Container`` class
+	designed specifically as enum-style object which values has to be ints.
+
+	=======
+	Example
+	=======
+
+	::
+
+		my_enum = Enum('MyEnum')
+		my_enum.DEFAULT = 0
+		my_enum.AAA = 1
+		my_enum.BBB = 1
+
+		my_enum._cache_members()  # you need to call it after all members defined
+
+	"""
+	@classmethod
+	def _class_children(cls):
+		"""
+		The method returning a set of fields/methods defined in the class itself.
+		It's used to prevent users from overriding those children with their own
+		items of the same name.
+		"""
+		res = set(dir(cls))  # type: _t.Set[str]
+		return res
+
+	@classmethod
+	def __proper_items(
+		cls,
+		kwargs  # type: _t.Dict[str, int]
+	):
+		"""
+		Make sure all the given items (i.e., key-value pairs) have proper names.
+
+		Throw an error if a key:
+			* is empty or not a string at all
+			* contains or starts from an unsupported character
+			* clashes with a class' built-in members.
+			* is passed multiple times
+			* it's value already present as another enum member
+		"""
+		seen_keys = set()  # type: _t.Set[str]
+		seen_keys_add = seen_keys.add
+		seen_values = set()  # type: _t.Set[int]
+		seen_values_add = seen_values.add
+		class_children = cls._class_children()
+		gen = (
+			(k, v) for k, v in kwargs.iteritems()
+			if k not in _enum_internal
+		)
+		return (
+			_enum_check_item(
+				k, v, class_children,
+				seen_keys, seen_keys_add,
+				seen_values, seen_values_add
+			) for k, v in gen
+		)
+
+	def __init__(
+		self,
+		name=None,  # type: _t.Optional[_str_hint]
+		unsupported=0,
+		**children  # type: int
+	):
+		super(Enum, self).__init__()
+		self.__dict__.update(
+			dict(self.__class__.__proper_items(children))
+		)
+		if not(name is None or isinstance(name, _str_t)):
+			name = repr(name)
+		self.__enum_name = name
+		self.__enum_default_val = unsupported
+		self.__enum_default_key = ''
+		self.__enum_dict = dict()  # type: _t.Dict[str, int]
+		self.__all_keys = set()  # type: _t.Set[str]
+		self.__all_values = set()  # type: _t.Set[int]
+		self.__key_mappings = dict()  # type: _t.Dict[int, str]
+
+	def _cache_members(self):
+		items = sorted(self.__iteritems_uncached())
+		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
+		self.__all_keys = {k for k, v in items}  # type: _t.Set[str]
+		self.__all_values = {v for k, v in items}  # type: _t.Set[int]
+		self.__key_mappings = {v: k for k, v in items}  # type: _t.Dict[int, str]
+		if self.__enum_default_val not in self.__all_values:
+			self.__enum_default_val = sorted(self.__all_values)[0]
+		self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
+
+	def __iteritems_uncached(self):
+		class_children = self.__class__._class_children()
+		seen_v = set()  # type: _t.Set[int]
+		seen_v_add = seen_v.add
+		gen = (
+			(k, v) for k, v in self.__dict__.iteritems()
+			if k not in _enum_internal
+		)
+		return (
+			_enum_check_no_clash(k, v, class_children, seen_v, seen_v_add, self)
+			for k, v in gen
+		)
+
+	def name(
+		self,
+		value  # type: int
+	):
+		try:
+			return self.__key_mappings[value]
+		except KeyError:
+			return self.__enum_default_key
+
+	@property
+	def all_names(self):
+		return self.__all_keys
+
+	@property
+	def all_values(self):
+		return self.__all_values
+
+	def iteritems(self):
+		return self.__enum_dict.iteritems()
+
+	def __repr__(self):
+		enum_name = self.__enum_name
+		return '<{enm}({nm})>'.format(
+			enm=self.__class__.__name__,
+			nm='' if (enum_name is None) else repr(enum_name),
+		)
+
+	def __getitem__(
+		self,
+		key  # type: str
+	):
+		try:
+			return self.__enum_dict[key]
+		except KeyError:
+			return self.__enum_default_val
 
 
 def remove_duplicates(items=None):

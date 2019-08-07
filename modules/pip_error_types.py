@@ -1,5 +1,5 @@
 """
-Enum-style module, defining known modes of PipError.
+Enum-style module, defining known modes of `PipError`.
 """
 
 __author__ = 'Lex Darlog (DRL)'
@@ -16,11 +16,11 @@ NO_PIP = 1
 MODULE_CANT_IMPORT = 2
 
 
-ALL_TYPES = {
+all_types = {
 	_k: _v for _k, _v in locals().items()
 	if not (
 		_k.startswith('_') or
-		_k in {'ALL_TYPES', }
+		_k in {'all_types', }
 	)
 }  # type: _t.Dict[str, int]
 
@@ -29,7 +29,7 @@ ALL_TYPES = {
 # 	print('{} => {}'.format(_k, _v))
 
 __type_key_mappings = {
-	v: k for k, v in ALL_TYPES.iteritems()
+	v: k for k, v in all_types.iteritems()
 }  # type: _t.Dict[int, str]
 
 

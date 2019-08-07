@@ -19,6 +19,15 @@ Then, if no success, use the modules specified above:
 
 """
 
+__author__ = 'Lex Darlog (DRL)'
+
+try:
+	# support type hints in Python 3:
+	# noinspection PyUnresolvedReferences
+	import typing as _t
+except ImportError:
+	pass
+
 BUILT_IN = 0
 
 CHARDET = 1
@@ -26,3 +35,28 @@ CHARDET_DAMMIT = 2
 
 FALLBACK_CHARDET = 3
 FALLBACK_CHARDET_DAMMIT = 4
+
+all_modes = {
+	_k: _v for _k, _v in locals().items()
+	if not (
+		_k.startswith('_') or
+		_k in {'all_modes', }
+	)
+}  # type: _t.Dict[str, int]
+
+
+__mode_key_mappings = {
+	_v: _k for _k, _v in all_modes.iteritems()
+}  # type: _t.Dict[int, str]
+
+
+def mode_key(
+	mode_value  # type: int
+):
+	"""
+	Get the human-readable name of given mode.
+	"""
+	try:
+		return __mode_key_mappings[mode_value]
+	except KeyError:
+		return None
