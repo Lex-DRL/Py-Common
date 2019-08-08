@@ -291,74 +291,6 @@ class Container(object):
 Dummy = Container  # fallback for a legacy code
 
 
-def _enum_check_errors(
-	name,  # type: str
-	value,  # type: int
-	seen_values_set,  # type: _t.Set[int]
-	seen_values_set_add,  # type: _t.Callable[[int], None]
-):
-	if not isinstance(value, int):
-		raise TypeError(
-			"Enum member {} should have int value. Got: {}".format(
-				repr(name), repr(value)
-			)
-		)
-	if value in seen_values_set:
-		raise ValueError(
-			"Enum can't have multiple members with the same value: {} -> {}".format(
-				name, value
-			)
-		)
-	seen_values_set_add(value)
-	return value
-
-
-def _enum_check_item(
-	name,  # type: _str_t
-	value,  # type: int
-	class_reserved_children,  # type: _t.Set[str]
-	seen_keys_set,  # type: _t.Set[str]
-	seen_keys_set_add,  # type: _t.Callable[[str], None]
-	seen_values_set,  # type: _t.Set[int]
-	seen_values_set_add,  # type: _t.Callable[[int], None]
-):
-	name = _container_check_name(
-		name, class_reserved_children, seen_keys_set, seen_keys_set_add
-	)
-	return (
-		name,
-		_enum_check_errors(name, value, seen_values_set, seen_values_set_add)
-	)
-
-
-def _enum_check_no_clash(
-	name,  # type: _str_t
-	value,  # type: int
-	class_reserved_children,  # type: _t.Set[str]
-	seen_values_set,  # type: _t.Set[int]
-	seen_values_set_add,  # type: _t.Callable[[int], None]
-	instance
-):
-	name = _container_check_no_class_clash(name, class_reserved_children, instance)
-	return (
-		name,
-		_enum_check_errors(name, value, seen_values_set, seen_values_set_add)
-	)
-
-
-_enum_internal = {
-	'__doc__',
-	'_Enum__doc__',
-	'_Enum__enum_name',
-	'_Enum__enum_default_val',
-	'_Enum__enum_default_key',
-	'_Enum__enum_dict',
-	'_Enum__all_keys',
-	'_Enum__all_values',
-	'_Enum__key_mappings',
-}
-
-
 class Enum(object):
 	"""
 	A modified version of ``Container`` class
@@ -378,8 +310,88 @@ class Enum(object):
 		my_enum._cache_members()  # you need to call it after all members defined
 
 	"""
+
+	# region Error-checkers for members being added
+
+	@staticmethod
+	def __check_errors(
+		name,  # type: str
+		value,  # type: int
+		enum_nm,  # type: _t.Optional[_str_hint]
+		seen_values_set,  # type: _t.Set[int]
+		seen_values_set_add,  # type: _t.Callable[[int], None]
+		seen_values_dict  # type: _t.Dict[int, str]
+	):
+		if not isinstance(value, int):
+			raise TypeError(
+				"Enum{} member {} should have int value. Got: {}".format(
+					'({})'.format(repr(enum_nm)) if enum_nm else '',
+					repr(name), repr(value)
+				)
+			)
+		if value in seen_values_set:
+			raise ValueError(
+				"Enum{} can't have multiple members with the same value: {} -> {}".format(
+					'({})'.format(repr(enum_nm)) if enum_nm else '',
+					'({}, {})'.format(seen_values_dict[value], name),
+					value
+				)
+			)
+		seen_values_set_add(value)
+		seen_values_dict[value] = name
+		return value
+
+	@staticmethod
+	def __check_item(
+		name,  # type: _str_t
+		value,  # type: int
+		enum_nm,  # type: _t.Optional[_str_hint]
+		class_reserved_children,  # type: _t.Set[str]
+		seen_keys_set,  # type: _t.Set[str]
+		seen_keys_set_add,  # type: _t.Callable[[str], None]
+		seen_values_set,  # type: _t.Set[int]
+		seen_values_set_add,  # type: _t.Callable[[int], None]
+		seen_values_dict  # type: _t.Dict[int, str]
+	):
+		name = _container_check_name(
+			name, class_reserved_children, seen_keys_set, seen_keys_set_add
+		)
+		check_f = Enum.__check_errors
+		return (
+			name,
+			check_f(
+				name, value, enum_nm, seen_values_set, seen_values_set_add,
+				seen_values_dict
+			)
+		)
+
+	@staticmethod
+	def __check_no_clash(
+		name,  # type: _str_t
+		value,  # type: int
+		enum_nm,  # type: _t.Optional[_str_hint]
+		class_reserved_children,  # type: _t.Set[str]
+		seen_values_set,  # type: _t.Set[int]
+		seen_values_set_add,  # type: _t.Callable[[int], None]
+		seen_values_dict,  # type: _t.Dict[int, str]
+		instance
+	):
+		name = _container_check_no_class_clash(
+			name, class_reserved_children, instance
+		)
+		check_f = Enum.__check_errors
+		return (
+			name,
+			check_f(
+				name, value, enum_nm, seen_values_set, seen_values_set_add,
+				seen_values_dict
+			)
+		)
+
+	# endregion
+
 	@classmethod
-	def _class_children(cls):
+	def __class_children(cls):
 		"""
 		The method returning a set of fields/methods defined in the class itself.
 		It's used to prevent users from overriding those children with their own
@@ -391,7 +403,8 @@ class Enum(object):
 	@classmethod
 	def __proper_items(
 		cls,
-		kwargs  # type: _t.Dict[str, int]
+		kwargs,  # type: _t.Dict[str, int]
+		enum_nm=None  # type: _t.Optional[_str_hint]
 	):
 		"""
 		Make sure all the given items (i.e., key-value pairs) have proper names.
@@ -402,71 +415,129 @@ class Enum(object):
 			* clashes with a class' built-in members.
 			* is passed multiple times
 			* it's value already present as another enum member
+
+		:param kwargs: the dict of member names and their internal enum-values.
+		:param enum_nm: the name of Enum itself, used for meaningful errors.
+		:return: a generator of checked items (name-value pairs).
 		"""
 		seen_keys = set()  # type: _t.Set[str]
 		seen_keys_add = seen_keys.add
 		seen_values = set()  # type: _t.Set[int]
 		seen_values_add = seen_values.add
-		class_children = cls._class_children()
+		seen_values_dict = dict()  # type: _t.Dict[int, str]
+		class_children = cls.__class_children()
+		internal_names = cls.__internal_names
 		gen = (
 			(k, v) for k, v in kwargs.iteritems()
-			if k not in _enum_internal
+			if k not in internal_names
 		)
+		check_f = cls.__check_item
 		return (
-			_enum_check_item(
-				k, v, class_children,
+			check_f(
+				k, v, enum_nm, class_children,
 				seen_keys, seen_keys_add,
-				seen_values, seen_values_add
+				seen_values, seen_values_add, seen_values_dict
 			) for k, v in gen
 		)
 
 	def __init__(
 		self,
 		name=None,  # type: _t.Optional[_str_hint]
-		unsupported=0,
+		default=0,
 		**children  # type: int
 	):
+		"""
+
+		:param name: An optional name of the enum.
+		:param default: A value of the enum member used as a default mode.
+		:param children: enum members added right at the initialization.
+		"""
 		super(Enum, self).__init__()
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(children))
+			dict(self.__class__.__proper_items(children, name))
 		)
 		if not(name is None or isinstance(name, _str_t)):
 			name = repr(name)
 		self.__enum_name = name
-		self.__enum_default_val = unsupported
+		self.__enum_default_val = default
 		self.__enum_default_key = ''
 		self.__enum_dict = dict()  # type: _t.Dict[str, int]
 		self.__all_keys = set()  # type: _t.Set[str]
 		self.__all_values = set()  # type: _t.Set[int]
 		self.__key_mappings = dict()  # type: _t.Dict[int, str]
+		self._cache_members()
+
+	__internal_names = {
+		'__doc__',
+		'_Enum__doc__',
+
+		'_Enum__enum_name',
+		'_Enum__enum_default_val',
+		'_Enum__enum_default_key',
+		'_Enum__enum_dict',
+		'_Enum__all_keys',
+		'_Enum__all_values',
+		'_Enum__key_mappings',
+	}
 
 	def _cache_members(self):
-		items = sorted(self.__iteritems_uncached())
+		"""
+		After all the enum-members are added, error-check and cache them internally
+		to make them appear in the built-in enum methods.
+
+		This step is necessary for the performance reasons: it's much better
+		to perform all the error-checks and cache all the members once,
+		as the last stage of an enum setup, and work with them later using fast
+		hash-sets, rather then perform these checks each time a member is accessed.
+		"""
+		items = sorted(self.__iteritems_no_cache())
 		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
 		self.__all_keys = {k for k, v in items}  # type: _t.Set[str]
 		self.__all_values = {v for k, v in items}  # type: _t.Set[int]
 		self.__key_mappings = {v: k for k, v in items}  # type: _t.Dict[int, str]
-		if self.__enum_default_val not in self.__all_values:
-			self.__enum_default_val = sorted(self.__all_values)[0]
-		self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
+		if self.__all_values:
+			# make sure the default value is actually in the set,
+			# if we do have any members defined already
+			if self.__enum_default_val not in self.__all_values:
+				self.__enum_default_val = sorted(self.__all_values)[0]
+			self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
 
-	def __iteritems_uncached(self):
-		class_children = self.__class__._class_children()
+	def __iteritems_no_cache(self):
+		"""
+		An iterator over raw enum items. Unlike public methods, this one doesn't
+		use any caches and iterate over members actually found on the enum instance.
+
+		Should be used only internally to actually build those caches, since
+		this method is much slower.
+		"""
+		class_children = self.__class__.__class_children()
 		seen_v = set()  # type: _t.Set[int]
 		seen_v_add = seen_v.add
+		seen_v_dict = dict()  # type: _t.Dict[int, str]
+		internal_names = self.__class__.__internal_names
 		gen = (
 			(k, v) for k, v in self.__dict__.iteritems()
-			if k not in _enum_internal
+			if k not in internal_names
 		)
+		enum_nm = self.__enum_name
+		check_f = self.__check_no_clash
 		return (
-			_enum_check_no_clash(k, v, class_children, seen_v, seen_v_add, self)
-			for k, v in gen
+			check_f(
+				k, v, enum_nm, class_children,
+				seen_v, seen_v_add, seen_v_dict, self
+			) for k, v in gen
 		)
 
 	def name(
 		self,
 		value  # type: int
 	):
+		"""
+		Given the value of an enum-member, get it's name.
+
+		If enum doesn't have a mamber with this value, no error is thrown,
+		but the default member's name is returned.
+		"""
 		try:
 			return self.__key_mappings[value]
 		except KeyError:
@@ -474,13 +545,16 @@ class Enum(object):
 
 	@property
 	def all_names(self):
+		"""A set containing **names** of all the enum's members."""
 		return self.__all_keys
 
 	@property
 	def all_values(self):
+		"""A set containing **values** of all the enum's members."""
 		return self.__all_values
 
 	def iteritems(self):
+		"""A name-value iterator over all the enum members."""
 		return self.__enum_dict.iteritems()
 
 	def __repr__(self):
@@ -498,6 +572,11 @@ class Enum(object):
 			return self.__enum_dict[key]
 		except KeyError:
 			return self.__enum_default_val
+
+	# TODO
+	# def __setattr__(self, key, value):
+	# 	# perform check if not batch-assignment (with calling cache afterwards)
+	# 	pass
 
 
 def remove_duplicates(items=None):
@@ -543,7 +622,9 @@ def list_difference(source_list, subtracted_list):
 	return res
 
 
-def camel_case(string='', punctuation_to_underscores=True, small_first_letter=True):
+def camel_case(
+	string='', punctuation_to_underscores=True, small_first_letter=True
+):
 	import re
 	# string='Some of my text is AWESOME, the other is not -_ all of it is cool'
 	if not (isinstance(string, str) and string):
