@@ -490,7 +490,7 @@ class Enum(object):
 		as the last stage of an enum setup, and work with them later using fast
 		hash-sets, rather then perform these checks each time a member is accessed.
 		"""
-		items = sorted(self.__iteritems_uncached())
+		items = sorted(self.__iteritems_no_cache())
 		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
 		self.__all_keys = {k for k, v in items}  # type: _t.Set[str]
 		self.__all_values = {v for k, v in items}  # type: _t.Set[int]
@@ -502,7 +502,7 @@ class Enum(object):
 				self.__enum_default_val = sorted(self.__all_values)[0]
 			self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
 
-	def __iteritems_uncached(self):
+	def __iteritems_no_cache(self):
 		"""
 		An iterator over raw enum items. Unlike public methods, this one doesn't
 		use any caches and iterate over members actually found on the enum instance.
@@ -572,6 +572,11 @@ class Enum(object):
 			return self.__enum_dict[key]
 		except KeyError:
 			return self.__enum_default_val
+
+	# TODO
+	# def __setattr__(self, key, value):
+	# 	# perform check if not batch-assignment (with calling cache afterwards)
+	# 	pass
 
 
 def remove_duplicates(items=None):
