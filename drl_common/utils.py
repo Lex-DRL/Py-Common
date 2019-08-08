@@ -294,55 +294,69 @@ Dummy = Container  # fallback for a legacy code
 def _enum_check_errors(
 	name,  # type: str
 	value,  # type: int
+	enum_nm,  # type: _t.Optional[_str_hint]
 	seen_values_set,  # type: _t.Set[int]
 	seen_values_set_add,  # type: _t.Callable[[int], None]
+	seen_values_dict  # type: _t.Dict[int, str]
 ):
 	if not isinstance(value, int):
 		raise TypeError(
-			"Enum member {} should have int value. Got: {}".format(
+			"Enum{} member {} should have int value. Got: {}".format(
+				'({})'.format(repr(enum_nm)) if enum_nm else '',
 				repr(name), repr(value)
 			)
 		)
 	if value in seen_values_set:
 		raise ValueError(
-			"Enum can't have multiple members with the same value: {} -> {}".format(
-				name, value
+			"Enum{} can't have multiple members with the same value: {} -> {}".format(
+				'({})'.format(repr(enum_nm)) if enum_nm else '',
+				'({}, {})'.format(seen_values_dict[value], name),
+				value
 			)
 		)
 	seen_values_set_add(value)
+	seen_values_dict[value] = name
 	return value
 
 
 def _enum_check_item(
 	name,  # type: _str_t
 	value,  # type: int
+	enum_nm,  # type: _t.Optional[_str_hint]
 	class_reserved_children,  # type: _t.Set[str]
 	seen_keys_set,  # type: _t.Set[str]
 	seen_keys_set_add,  # type: _t.Callable[[str], None]
 	seen_values_set,  # type: _t.Set[int]
 	seen_values_set_add,  # type: _t.Callable[[int], None]
+	seen_values_dict  # type: _t.Dict[int, str]
 ):
 	name = _container_check_name(
 		name, class_reserved_children, seen_keys_set, seen_keys_set_add
 	)
 	return (
 		name,
-		_enum_check_errors(name, value, seen_values_set, seen_values_set_add)
+		_enum_check_errors(
+			name, value, enum_nm, seen_values_set, seen_values_set_add, seen_values_dict
+		)
 	)
 
 
 def _enum_check_no_clash(
 	name,  # type: _str_t
 	value,  # type: int
+	enum_nm,  # type: _t.Optional[_str_hint]
 	class_reserved_children,  # type: _t.Set[str]
 	seen_values_set,  # type: _t.Set[int]
 	seen_values_set_add,  # type: _t.Callable[[int], None]
+	seen_values_dict,  # type: _t.Dict[int, str]
 	instance
 ):
 	name = _container_check_no_class_clash(name, class_reserved_children, instance)
 	return (
 		name,
-		_enum_check_errors(name, value, seen_values_set, seen_values_set_add)
+		_enum_check_errors(
+			name, value, enum_nm, seen_values_set, seen_values_set_add, seen_values_dict
+		)
 	)
 
 
@@ -391,7 +405,8 @@ class Enum(object):
 	@classmethod
 	def __proper_items(
 		cls,
-		kwargs  # type: _t.Dict[str, int]
+		kwargs,  # type: _t.Dict[str, int]
+		enum_nm=None  # type: _t.Optional[_str_hint]
 	):
 		"""
 		Make sure all the given items (i.e., key-value pairs) have proper names.
@@ -407,6 +422,7 @@ class Enum(object):
 		seen_keys_add = seen_keys.add
 		seen_values = set()  # type: _t.Set[int]
 		seen_values_add = seen_values.add
+		seen_values_dict = dict()  # type: _t.Dict[int, str]
 		class_children = cls._class_children()
 		gen = (
 			(k, v) for k, v in kwargs.iteritems()
@@ -414,9 +430,9 @@ class Enum(object):
 		)
 		return (
 			_enum_check_item(
-				k, v, class_children,
+				k, v, enum_nm, class_children,
 				seen_keys, seen_keys_add,
-				seen_values, seen_values_add
+				seen_values, seen_values_add, seen_values_dict
 			) for k, v in gen
 		)
 
@@ -428,7 +444,7 @@ class Enum(object):
 	):
 		super(Enum, self).__init__()
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(children))
+			dict(self.__class__.__proper_items(children, name))
 		)
 		if not(name is None or isinstance(name, _str_t)):
 			name = repr(name)
@@ -454,13 +470,16 @@ class Enum(object):
 		class_children = self.__class__._class_children()
 		seen_v = set()  # type: _t.Set[int]
 		seen_v_add = seen_v.add
+		seen_v_dict = dict()  # type: _t.Dict[int, str]
 		gen = (
 			(k, v) for k, v in self.__dict__.iteritems()
 			if k not in _enum_internal
 		)
 		return (
-			_enum_check_no_clash(k, v, class_children, seen_v, seen_v_add, self)
-			for k, v in gen
+			_enum_check_no_clash(
+				k, v, self.__enum_name, class_children,
+				seen_v, seen_v_add, seen_v_dict, self
+			) for k, v in gen
 		)
 
 	def name(
@@ -543,7 +562,9 @@ def list_difference(source_list, subtracted_list):
 	return res
 
 
-def camel_case(string='', punctuation_to_underscores=True, small_first_letter=True):
+def camel_case(
+	string='', punctuation_to_underscores=True, small_first_letter=True
+):
 	import re
 	# string='Some of my text is AWESOME, the other is not -_ all of it is cool'
 	if not (isinstance(string, str) and string):
