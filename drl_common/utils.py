@@ -417,6 +417,10 @@ class Enum(object):
 			* clashes with a class' built-in members.
 			* is passed multiple times
 			* it's value already present as another enum member
+
+		:param kwargs: the dict of member names and their internal enum-values.
+		:param enum_nm: the name of Enum itself, used for meaningful errors.
+		:return: a generator of checked items (name-value pairs).
 		"""
 		seen_keys = set()  # type: _t.Set[str]
 		seen_keys_add = seen_keys.add
@@ -439,9 +443,15 @@ class Enum(object):
 	def __init__(
 		self,
 		name=None,  # type: _t.Optional[_str_hint]
-		unsupported=0,
+		default=0,
 		**children  # type: int
 	):
+		"""
+
+		:param name: An optional name of the enum.
+		:param default: A value of the enum member used as a default mode.
+		:param children: enum members added right at the initialization.
+		"""
 		super(Enum, self).__init__()
 		self.__dict__.update(
 			dict(self.__class__.__proper_items(children, name))
@@ -449,24 +459,44 @@ class Enum(object):
 		if not(name is None or isinstance(name, _str_t)):
 			name = repr(name)
 		self.__enum_name = name
-		self.__enum_default_val = unsupported
+		self.__enum_default_val = default
 		self.__enum_default_key = ''
 		self.__enum_dict = dict()  # type: _t.Dict[str, int]
 		self.__all_keys = set()  # type: _t.Set[str]
 		self.__all_values = set()  # type: _t.Set[int]
 		self.__key_mappings = dict()  # type: _t.Dict[int, str]
+		self._cache_members()
 
 	def _cache_members(self):
+		"""
+		After all the enum-members are added, error-check and cache them internally
+		to make them appear in the built-in enum methods.
+
+		This step is necessary for the performance reasons: it's much better
+		to perform all the error-checks and cache all the members once,
+		as the last stage of an enum setup, and work with them later using fast
+		hash-sets, rather then perform these checks each time a member is accessed.
+		"""
 		items = sorted(self.__iteritems_uncached())
 		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
 		self.__all_keys = {k for k, v in items}  # type: _t.Set[str]
 		self.__all_values = {v for k, v in items}  # type: _t.Set[int]
 		self.__key_mappings = {v: k for k, v in items}  # type: _t.Dict[int, str]
-		if self.__enum_default_val not in self.__all_values:
-			self.__enum_default_val = sorted(self.__all_values)[0]
-		self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
+		if self.__all_values:
+			# make sure the default value is actually in the set,
+			# if we do have any members defined already
+			if self.__enum_default_val not in self.__all_values:
+				self.__enum_default_val = sorted(self.__all_values)[0]
+			self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
 
 	def __iteritems_uncached(self):
+		"""
+		An iterator over raw enum items. Unlike public methods, this one doesn't
+		use any caches and iterate over members actually found on the enum instance.
+
+		Should be used only internally to actually build those caches, since
+		this method is much slower.
+		"""
 		class_children = self.__class__._class_children()
 		seen_v = set()  # type: _t.Set[int]
 		seen_v_add = seen_v.add
@@ -475,9 +505,10 @@ class Enum(object):
 			(k, v) for k, v in self.__dict__.iteritems()
 			if k not in _enum_internal
 		)
+		enum_nm = self.__enum_name
 		return (
 			_enum_check_no_clash(
-				k, v, self.__enum_name, class_children,
+				k, v, enum_nm, class_children,
 				seen_v, seen_v_add, seen_v_dict, self
 			) for k, v in gen
 		)
@@ -486,6 +517,12 @@ class Enum(object):
 		self,
 		value  # type: int
 	):
+		"""
+		Given the value of an enum-member, get it's name.
+
+		If enum doesn't have a mamber with this value, no error is thrown,
+		but the default member's name is returned.
+		"""
 		try:
 			return self.__key_mappings[value]
 		except KeyError:
@@ -493,13 +530,16 @@ class Enum(object):
 
 	@property
 	def all_names(self):
+		"""A set containing **names** of all the enum's members."""
 		return self.__all_keys
 
 	@property
 	def all_values(self):
+		"""A set containing **values** of all the enum's members."""
 		return self.__all_values
 
 	def iteritems(self):
+		"""A name-value iterator over all the enum members."""
 		return self.__enum_dict.iteritems()
 
 	def __repr__(self):
