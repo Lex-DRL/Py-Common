@@ -498,8 +498,8 @@ class Enum(__BaseContainer):
 		self.__enum_default_val = default
 		self.__enum_default_key = ''
 		self.__enum_dict = dict()  # type: _t.Dict[str, int]
-		self.__all_keys = set()  # type: _t.Set[str]
-		self.__all_values = set()  # type: _t.Set[int]
+		self.__all_keys = frozenset()  # type: _t.FrozenSet[str]
+		self.__all_values = frozenset()  # type: _t.FrozenSet[int]
 		self.__key_mappings = dict()  # type: _t.Dict[int, str]
 		self._cache_members()
 
@@ -528,8 +528,8 @@ class Enum(__BaseContainer):
 		"""
 		items = sorted(self.__iteritems_no_cache())
 		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
-		self.__all_keys = {k for k, v in items}  # type: _t.Set[str]
-		self.__all_values = {v for k, v in items}  # type: _t.Set[int]
+		self.__all_keys = frozenset(k for k, v in items)  # type: _t.FrozenSet[str]
+		self.__all_values = frozenset(v for k, v in items)  # type: _t.FrozenSet[int]
 		self.__key_mappings = {v: k for k, v in items}  # type: _t.Dict[int, str]
 		if self.__all_values:
 			# make sure the default value is actually in the set,
@@ -574,10 +574,9 @@ class Enum(__BaseContainer):
 		If enum doesn't have a mamber with this value, no error is thrown,
 		but the default member's name is returned.
 		"""
-		try:
+		if value in self.__all_values:
 			return self.__key_mappings[value]
-		except KeyError:
-			return self.__enum_default_key
+		return self.__enum_default_key
 
 	@property
 	def all_names(self):
@@ -604,10 +603,9 @@ class Enum(__BaseContainer):
 		self,
 		key  # type: str
 	):
-		try:
+		if key in self.__all_keys:
 			return self.__enum_dict[key]
-		except KeyError:
-			return self.__enum_default_val
+		return self.__enum_default_val
 
 	# TODO
 	# def __setattr__(self, key, value):
