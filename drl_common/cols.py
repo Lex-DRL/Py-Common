@@ -17,6 +17,7 @@ from .py_2_3 import (
 )
 
 from collections import (
+	OrderedDict as _OrderedDict,
 	Iterable as _Iterable,
 	Iterator as _Iterator
 )
@@ -190,7 +191,7 @@ class __BaseContainer(object):
 		if name in class_reserved_children:
 			raise ValueError(
 				"This name can't be used as the {cls_nm}'s member "
-				"since the {cls_nm} object already has a class method "
+				"since the {cls_nm} object already has a class attribute "
 				"with the same name: {itm_nm}".format(
 					cls_nm=cls.__name__, itm_nm=name
 				)
@@ -344,11 +345,17 @@ class Enum(__BaseContainer):
 	::
 
 		my_enum = Enum('MyEnum')
+		# start building a list of members to attach, but don't add them yet,
+		# to add them later, all in once:
+		my_enum.batch_start()
+
 		my_enum.DEFAULT = 0
 		my_enum.AAA = 1
 		my_enum.BBB = 1
 
-		my_enum._cache_members()  # you need to call it after all members defined
+		# actually add all the above members,
+		# also error-checking their names/values:
+		my_enum.batch_end()
 
 	"""
 
@@ -489,24 +496,49 @@ class Enum(__BaseContainer):
 		:param children: enum members added right at the initialization.
 		"""
 		super(Enum, self).__init__()
-		self.__dict__.update(
-			dict(self.__class__.__proper_items(children, name))
-		)
 		if not(name is None or isinstance(name, _str_t)):
 			name = repr(name)
-		self.__enum_name = name
+
+		# since we're overriding the __setattr__() method to make it
+		# perform extra checks and/or handle batch-caching,
+		# we need to manually mark the class instance to indicate
+		# it's class itself who's attempting to set internal values. So:
+		self.__internal_assign = True
+
+		self.__batch_assign = False
+		self.__pending_batch_members = _OrderedDict()  # type: _t.Dict[str, _t.Any]
+		self.__enum_name = name  # type: _t.Optional[_str_hint]
 		self.__enum_default_val = default
 		self.__enum_default_key = ''
 		self.__enum_dict = dict()  # type: _t.Dict[str, int]
 		self.__all_keys = frozenset()  # type: _t.FrozenSet[str]
 		self.__all_values = frozenset()  # type: _t.FrozenSet[int]
 		self.__key_mappings = dict()  # type: _t.Dict[int, str]
-		self._cache_members()
+		self.__dict__.update(
+			dict(self.__class__.__proper_items(children, name))
+		)
 
-	__internal_names = {
-		'__doc__',
+		self.__internal_assign = False
+
+		self.__cache_members()
+
+	# to avoid getting stuck in a loop trying to set an internal value
+	# while __internal_assign isn't set yet and therefore can't be tested,
+	# we need to explicitly tell the names of those very initial member names,
+	# to skip all the checks and perform a default assignment:
+	__allowed_internal_names = frozenset({
+		'__doc__',  # let a user to add a custom docstring, also skipping any checks
+		'__batch_assign',
+		'__internal_assign',
+		'_Enum__batch_assign',
+		'_Enum__internal_assign',
+	})
+
+	# the full list of internal attributes is used to filter them out
+	# from listing all the attached members:
+	__internal_names = frozenset({
 		'_Enum__doc__',
-
+		'_Enum__pending_batch_members',
 		'_Enum__enum_name',
 		'_Enum__enum_default_val',
 		'_Enum__enum_default_key',
@@ -514,9 +546,37 @@ class Enum(__BaseContainer):
 		'_Enum__all_keys',
 		'_Enum__all_values',
 		'_Enum__key_mappings',
-	}
+	}.union(__allowed_internal_names))
 
-	def _cache_members(self):
+	def batch_start(self):
+		"""
+		Used in conjunction with ``batch_end()``,
+		to assign multiple enum values as a batch and error-check/cache them
+		later, all at once.
+		"""
+		self.__batch_assign = True
+
+	def batch_end(self):
+		"""
+		Used in conjunction with ``batch_start()``,
+		to assign multiple enum values as a batch and error-check/cache them
+		all at once.
+		"""
+		self.__internal_assign = True
+
+		self.__dict__.update(dict(
+			self.__class__.__proper_items(
+				self.__pending_batch_members,
+				self.__enum_name
+			)
+		))
+		self.__pending_batch_members = _OrderedDict()  # type: _t.Dict[str, _t.Any]
+		self.__batch_assign = False
+
+		self.__internal_assign = False
+		self.__cache_members()
+
+	def __cache_members(self):
 		"""
 		After all the enum-members are added, error-check and cache them internally
 		to make them appear in the built-in enum methods.
@@ -526,6 +586,8 @@ class Enum(__BaseContainer):
 		as the last stage of an enum setup, and work with them later using fast
 		hash-sets, rather then perform these checks each time a member is accessed.
 		"""
+		self.__internal_assign = True
+
 		items = sorted(self.__iteritems_no_cache())
 		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
 		self.__all_keys = frozenset(k for k, v in items)  # type: _t.FrozenSet[str]
@@ -537,6 +599,8 @@ class Enum(__BaseContainer):
 			if self.__enum_default_val not in self.__all_values:
 				self.__enum_default_val = sorted(self.__all_values)[0]
 			self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
+
+		self.__internal_assign = False
 
 	def __iteritems_no_cache(self):
 		"""
@@ -588,9 +652,36 @@ class Enum(__BaseContainer):
 		"""A set containing **values** of all the enum's members."""
 		return self.__all_values
 
+	@property
+	def enum_name(self):
+		return self.__enum_name
+
 	def iteritems(self):
 		"""A name-value iterator over all the enum members."""
 		return self.__enum_dict.iteritems()
+
+	def __setattr__(
+		self,
+		key,  # type: _str_hint
+		value
+	):
+		# it's important to have key-check first,
+		# because this method is called during assignments from the init method.
+		if (key in self.__allowed_internal_names) or self.__internal_assign:
+			super(Enum, self).__setattr__(key, value)
+			return
+
+		if self.__batch_assign:
+			self.__pending_batch_members[key] = value
+			return
+
+		# perform check if not batch-assignment:
+		key, value = list(
+			self.__class__.__proper_items({key: value}, self.__enum_name)
+		)[0]
+		# print ('{} -> {}'.format(key, value))
+		super(Enum, self).__setattr__(key, value)
+		self.__cache_members()
 
 	def __repr__(self):
 		enum_name = self.__enum_name
@@ -607,7 +698,8 @@ class Enum(__BaseContainer):
 			return self.__enum_dict[key]
 		return self.__enum_default_val
 
-	# TODO
-	# def __setattr__(self, key, value):
-	# 	# perform check if not batch-assignment (with calling cache afterwards)
-	# 	pass
+	def __contains__(self, item):
+		return self.__all_values.__contains__(item)
+
+	def __iter__(self):
+		return self.__all_values.__iter__()  # type: _t.Iterator[int]
