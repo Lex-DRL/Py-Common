@@ -79,8 +79,19 @@ class DefaultList(list):
 
 
 class __BaseContainer(object):
+
+	@classmethod
+	def _class_children(cls):
+		"""
+		The method returning a set of fields/methods defined in the class itself.
+		It's used to prevent users from overriding those children with their own
+		items of the same name.
+		"""
+		res = set(dir(cls))  # type: _t.Set[str]
+		return res
+
 	@staticmethod
-	def _container_proper_name(
+	def _proper_name_base(
 		name,  # type: _str_hint
 		class_reserved_children,  # type: _t.Set[_str_hint]
 		seen_set,  # type: _t.Set[_str_hint]
@@ -117,8 +128,9 @@ class __BaseContainer(object):
 			and not (name in seen_set or seen_set_add(name))
 		)
 
-	@staticmethod
-	def _container_check_name(
+	@classmethod
+	def _check_name_base(
+		cls,
 		name,  # type: _str_hint
 		class_reserved_children,  # type: _t.Set[str]
 		seen_set,  # type: _t.Set[str]
@@ -180,14 +192,15 @@ class __BaseContainer(object):
 
 		return name
 
-	@staticmethod
-	def _container_check_no_class_clash(
+	@classmethod
+	def _check_no_clash_base(
+		cls,
 		name,  # type: _str_hint
 		class_reserved_children,  # type: _t.Set[str]
 		instance
 	):
 
-		# print "base: _container_check_no_class_clash({}, {}, {})".format(
+		# print "base._check_no_clash_base({}, {}, {})".format(
 		# 	repr(name), repr(class_reserved_children), repr(instance)
 		# )
 		if not (name and isinstance(name, str)):
@@ -221,16 +234,6 @@ class Container(__BaseContainer):
 	"""
 
 	@classmethod
-	def _class_children(cls):
-		"""
-		The method returning a set of fields/methods defined in the class itself.
-		It's used to prevent users from overriding those children with their own
-		items of the same name.
-		"""
-		res = set(dir(cls))  # type: _t.Set[str]
-		return res
-
-	@classmethod
 	def __proper_items(
 		cls,
 		kwargs  # type: _t.Dict[str, _t.Any]
@@ -247,7 +250,7 @@ class Container(__BaseContainer):
 		seen = set()  # type: _t.Set[str]
 		seen_add = seen.add
 		class_children = cls._class_children()
-		check_f = cls._container_check_name
+		check_f = cls._check_name_base
 		return (
 			(
 				check_f(k, class_children, seen, seen_add),
@@ -258,12 +261,12 @@ class Container(__BaseContainer):
 	def __init__(self, **children):
 		super(Container, self).__init__()
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(children))
+			dict(self.__proper_items(children))
 		)
 
 	def iteritems(self):
 		class_children = self.__class__._class_children()
-		check_f = self.__class__._container_check_no_class_clash
+		check_f = self.__class__._check_no_clash_base
 		return (
 			(check_f(k, class_children, self), v)
 			for k, v in self.__dict__.iteritems()
@@ -283,7 +286,7 @@ class Container(__BaseContainer):
 
 	def update(self, **children):
 		self.__dict__.update(
-			dict(self.__class__.__proper_items(children))
+			dict(self.__proper_items(children))
 		)
 
 	def __repr__(self):
@@ -332,8 +335,9 @@ class Enum(__BaseContainer):
 
 	# region Error-checkers for members being added
 
-	@staticmethod
+	@classmethod
 	def __check_errors(
+		cls,
 		name,  # type: str
 		value,  # type: int
 		enum_nm,  # type: _t.Optional[_str_hint]
@@ -360,8 +364,9 @@ class Enum(__BaseContainer):
 		seen_values_dict[value] = name
 		return value
 
-	@staticmethod
+	@classmethod
 	def __check_item(
+		cls,
 		name,  # type: _str_t
 		value,  # type: int
 		enum_nm,  # type: _t.Optional[_str_hint]
@@ -372,10 +377,10 @@ class Enum(__BaseContainer):
 		seen_values_set_add,  # type: _t.Callable[[int], None]
 		seen_values_dict  # type: _t.Dict[int, str]
 	):
-		name = super(Enum, Enum)._container_check_name(
+		name = cls._check_name_base(
 			name, class_reserved_children, seen_keys_set, seen_keys_set_add
 		)
-		check_f = Enum.__check_errors
+		check_f = cls.__check_errors
 		return (
 			name,
 			check_f(
@@ -384,8 +389,9 @@ class Enum(__BaseContainer):
 			)
 		)
 
-	@staticmethod
+	@classmethod
 	def __check_no_clash(
+		cls,
 		name,  # type: _str_t
 		value,  # type: int
 		enum_nm,  # type: _t.Optional[_str_hint]
@@ -395,10 +401,10 @@ class Enum(__BaseContainer):
 		seen_values_dict,  # type: _t.Dict[int, str]
 		instance
 	):
-		name = super(Enum, Enum)._container_check_no_class_clash(
+		name = cls._check_no_clash_base(
 			name, class_reserved_children, instance
 		)
-		check_f = Enum.__check_errors
+		check_f = cls.__check_errors
 		return (
 			name,
 			check_f(
@@ -408,16 +414,6 @@ class Enum(__BaseContainer):
 		)
 
 	# endregion
-
-	@classmethod
-	def __class_children(cls):
-		"""
-		The method returning a set of fields/methods defined in the class itself.
-		It's used to prevent users from overriding those children with their own
-		items of the same name.
-		"""
-		res = set(dir(cls))  # type: _t.Set[str]
-		return res
 
 	@classmethod
 	def __proper_items(
@@ -444,7 +440,7 @@ class Enum(__BaseContainer):
 		seen_values = set()  # type: _t.Set[int]
 		seen_values_add = seen_values.add
 		seen_values_dict = dict()  # type: _t.Dict[int, str]
-		class_children = cls.__class_children()
+		class_children = cls._class_children()
 		internal_names = cls.__internal_names
 		gen = (
 			(k, v) for k, v in kwargs.iteritems()
@@ -529,7 +525,7 @@ class Enum(__BaseContainer):
 		Should be used only internally to actually build those caches, since
 		this method is much slower.
 		"""
-		class_children = self.__class__.__class_children()
+		class_children = self.__class__._class_children()
 		seen_v = set()  # type: _t.Set[int]
 		seen_v_add = seen_v.add
 		seen_v_dict = dict()  # type: _t.Dict[int, str]
