@@ -78,115 +78,131 @@ class DefaultList(list):
 		)
 
 
-def _container_proper_name(
-	name,  # type: _str_hint
-	class_reserved_children,  # type: _t.Set[_str_hint]
-	seen_set,  # type: _t.Set[_str_hint]
-	seen_set_add,  # type: _t.Callable[[str], None]
-):
-	"""
-	Whether the given name can be used as a container's member name.
-
-	:param name: The name to check
-	:param class_reserved_children:
-		A string set containing names reserved for the class members.
-	:param seen_set:
-		A set used to verify if the same name was used multiple times
-		during a single operation.
-	:param seen_set_add:
-		The set's add() method. Passed simply for performance reasons.
-	:return:
-		* ``True`` - if the name is OK.
-		* ``False`` - if not.
-	"""
-	return (
-		name
-		and isinstance(name, _str_t)
-		and name[0] in _var_name_start_chars
-		and all(c in _var_name_chars for c in name[1:])
-		# and not k.startswith('_')  # already covered by previous ^ condition
-		and name not in class_reserved_children
-		# ensure each key is unique and add it if it is:
-		and not (name in seen_set or seen_set_add(name))
-	)
-
-
-def _container_check_name(
-	name,  # type: _str_hint
-	class_reserved_children,  # type: _t.Set[str]
-	seen_set,  # type: _t.Set[str]
-	seen_set_add,  # type: _t.Callable[[str], None]
-):
-	"""
-	Verify that the given name can be used as a container's member.
-	Raise an error if anything is wrong.
-
-	:param name: The name to check
-	:param class_reserved_children:
-		A string set containing names reserved for the class members.
-	:param seen_set:
-		A set used to verify if the same name was used multiple times
-		during a single operation.
-	:param seen_set_add:
-		The set's add() method. Passed simply for performance reasons.
-	:return: The passed name forcefully turned to a string.
-	"""
-	if not isinstance(name, _str_t):
-		raise TypeError(
-			"This can't be the name of the container's child: {}".format(repr(name))
-		)
-	if not name:
-		raise ValueError("The container's child can't have an empty name.")
-
-	if name[0] not in _var_name_start_chars:
-		raise ValueError(
-			"This can't be the name of the container's child "
-			"since it starts from an unsupported character: {}".format(name)
-		)
-	if not all(
-		c in _var_name_chars for c in name[1:]
+class __BaseContainer(object):
+	@staticmethod
+	def _container_proper_name(
+		name,  # type: _str_hint
+		class_reserved_children,  # type: _t.Set[_str_hint]
+		seen_set,  # type: _t.Set[_str_hint]
+		seen_set_add,  # type: _t.Callable[[str], None]
 	):
-		raise ValueError(
-			"This can't be the name of the class member "
-			"since it contains an unsupported character: {}".format(name)
+		"""
+		Whether the given name can be used as a container's member name.
+
+		:param name: The name to check
+		:param class_reserved_children:
+			A string set containing names reserved for the class members.
+		:param seen_set:
+			A set used to verify if the same name was used multiple times
+			during a single operation.
+		:param seen_set_add:
+			The set's add() method. Passed simply for performance reasons.
+		:return:
+			* ``True`` - if the name is OK.
+			* ``False`` - if not.
+		"""
+
+		# print 'base _container_proper_name({}, {}, {}, {})'.format(
+		# 	repr(name), repr(class_reserved_children),
+		# 	repr(seen_set), repr(seen_set_add)
+		# )
+		return (
+			name
+			and isinstance(name, _str_t)
+			and name[0] in _var_name_start_chars
+			and all(c in _var_name_chars for c in name[1:])
+			# and not k.startswith('_')  # already covered by previous ^ condition
+			and name not in class_reserved_children
+			# ensure each key is unique and add it if it is:
+			and not (name in seen_set or seen_set_add(name))
 		)
-	if not isinstance(name, str):
-		name = str(name)
 
-	if name in class_reserved_children:
-		raise ValueError(
-			"This name can't be used as the container's child "
-			"since the container object already has a class method "
-			"with the same name: {}".format(name)
-		)
-	if name in seen_set:
-		raise ValueError(
-			"Attempt to add the same container's child "
-			"multiple times at once: {}".format(name)
-		)
-	seen_set_add(name)
+	@staticmethod
+	def _container_check_name(
+		name,  # type: _str_hint
+		class_reserved_children,  # type: _t.Set[str]
+		seen_set,  # type: _t.Set[str]
+		seen_set_add,  # type: _t.Callable[[str], None]
+	):
+		"""
+		Verify that the given name can be used as a container's member.
+		Raise an error if anything is wrong.
 
-	return name
+		:param name: The name to check
+		:param class_reserved_children:
+			A string set containing names reserved for the class members.
+		:param seen_set:
+			A set used to verify if the same name was used multiple times
+			during a single operation.
+		:param seen_set_add:
+			The set's add() method. Passed simply for performance reasons.
+		:return: The passed name forcefully turned to a string.
+		"""
+
+		# print 'base _container_check_name({}, {}, {}, {})'.format(
+		# 	repr(name), repr(class_reserved_children),
+		# 	repr(seen_set), repr(seen_set_add)
+		# )
+		if not isinstance(name, _str_t):
+			raise TypeError(
+				"This can't be the name of the container's child: {}".format(repr(name))
+			)
+		if not name:
+			raise ValueError("The container's child can't have an empty name.")
+
+		if name[0] not in _var_name_start_chars:
+			raise ValueError(
+				"This can't be the name of the container's child "
+				"since it starts from an unsupported character: {}".format(name)
+			)
+		if not all(
+			c in _var_name_chars for c in name[1:]
+		):
+			raise ValueError(
+				"This can't be the name of the class member "
+				"since it contains an unsupported character: {}".format(name)
+			)
+		if not isinstance(name, str):
+			name = str(name)
+
+		if name in class_reserved_children:
+			raise ValueError(
+				"This name can't be used as the container's child "
+				"since the container object already has a class method "
+				"with the same name: {}".format(name)
+			)
+		if name in seen_set:
+			raise ValueError(
+				"Attempt to add the same container's child "
+				"multiple times at once: {}".format(name)
+			)
+		seen_set_add(name)
+
+		return name
+
+	@staticmethod
+	def _container_check_no_class_clash(
+		name,  # type: _str_hint
+		class_reserved_children,  # type: _t.Set[str]
+		instance
+	):
+
+		# print "base: _container_check_no_class_clash({}, {}, {})".format(
+		# 	repr(name), repr(class_reserved_children), repr(instance)
+		# )
+		if not (name and isinstance(name, str)):
+			raise ValueError(
+				"The container's child can't have this name: {}".format(repr(name))
+			)
+		if name in class_reserved_children:
+			raise ValueError(
+				"The name of a container's class member \"{}\" is overridden "
+				"on the instance: {}".format(name, instance)
+			)
+		return name
 
 
-def _container_check_no_class_clash(
-	name,  # type: _str_hint
-	class_reserved_children,  # type: _t.Set[str]
-	instance
-):
-	if not (name and isinstance(name, str)):
-		raise ValueError(
-			"The container's child can't have this name: {}".format(repr(name))
-		)
-	if name in class_reserved_children:
-		raise ValueError(
-			"The name of a container's class member \"{}\" is overridden "
-			"on the instance: {}".format(name, instance)
-		)
-	return name
-
-
-class Container(object):
+class Container(__BaseContainer):
 	"""
 	Just a dummy service class, acting like
 	an editable namedtuple.
@@ -231,9 +247,10 @@ class Container(object):
 		seen = set()  # type: _t.Set[str]
 		seen_add = seen.add
 		class_children = cls._class_children()
+		check_f = cls._container_check_name
 		return (
 			(
-				_container_check_name(k, class_children, seen, seen_add),
+				check_f(k, class_children, seen, seen_add),
 				v
 			) for k, v in kwargs.iteritems()
 		)
@@ -246,8 +263,9 @@ class Container(object):
 
 	def iteritems(self):
 		class_children = self.__class__._class_children()
+		check_f = self.__class__._container_check_no_class_clash
 		return (
-			(_container_check_no_class_clash(k, class_children, self), v)
+			(check_f(k, class_children, self), v)
 			for k, v in self.__dict__.iteritems()
 		)
 
@@ -292,7 +310,7 @@ class Container(object):
 		return '{0}({1})'.format(self.__class__.__name__, res_values)
 
 
-class Enum(object):
+class Enum(__BaseContainer):
 	"""
 	A modified version of ``Container`` class
 	designed specifically as enum-style object which values has to be ints.
@@ -354,7 +372,7 @@ class Enum(object):
 		seen_values_set_add,  # type: _t.Callable[[int], None]
 		seen_values_dict  # type: _t.Dict[int, str]
 	):
-		name = _container_check_name(
+		name = super(Enum, Enum)._container_check_name(
 			name, class_reserved_children, seen_keys_set, seen_keys_set_add
 		)
 		check_f = Enum.__check_errors
@@ -377,7 +395,7 @@ class Enum(object):
 		seen_values_dict,  # type: _t.Dict[int, str]
 		instance
 	):
-		name = _container_check_no_class_clash(
+		name = super(Enum, Enum)._container_check_no_class_clash(
 			name, class_reserved_children, instance
 		)
 		check_f = Enum.__check_errors
@@ -560,8 +578,8 @@ class Enum(object):
 
 	def __repr__(self):
 		enum_name = self.__enum_name
-		return '<{enm}({nm})>'.format(
-			enm=self.__class__.__name__,
+		return '<{cls}({nm})>'.format(
+			cls=self.__class__.__name__,
 			nm='' if (enum_name is None) else repr(enum_name),
 		)
 
