@@ -157,47 +157,59 @@ class __BaseContainer(object):
 		# )
 		if not isinstance(name, _str_t):
 			raise TypeError(
-				"This can't be the name of the container's child: {}".format(repr(name))
+				"This can't be the name of the {cls_nm}'s member: {itm_nm}".format(
+					cls_nm=cls.__name__, itm_nm=repr(name)
+				)
 			)
 		if not name:
-			raise ValueError("The container's child can't have an empty name.")
+			raise ValueError(
+				"The {cls_nm}'s member can't have an empty name.".format(
+					cls_nm=cls.__name__
+				)
+			)
 
 		if name[0] not in _var_name_start_chars:
 			raise ValueError(
-				"This can't be the name of the container's child "
-				"since it starts from an unsupported character: {}".format(name)
+				"This can't be the name of the {cls_nm}'s member "
+				"since it starts from an unsupported character: {itm_nm}".format(
+					cls_nm=cls.__name__, itm_nm=name
+				)
 			)
 		if not all(
 			c in _var_name_chars for c in name[1:]
 		):
 			raise ValueError(
-				"This can't be the name of the class member "
-				"since it contains an unsupported character: {}".format(name)
+				"This can't be the name of the {cls_nm}'s member "
+				"since it contains an unsupported character: {itm_nm}".format(
+					cls_nm=cls.__name__, itm_nm=name
+				)
 			)
 		if not isinstance(name, str):
 			name = str(name)
 
 		if name in class_reserved_children:
 			raise ValueError(
-				"This name can't be used as the container's child "
-				"since the container object already has a class method "
-				"with the same name: {}".format(name)
+				"This name can't be used as the {cls_nm}'s member "
+				"since the {cls_nm} object already has a class method "
+				"with the same name: {itm_nm}".format(
+					cls_nm=cls.__name__, itm_nm=name
+				)
 			)
 		if name in seen_set:
 			raise ValueError(
-				"Attempt to add the same container's child "
-				"multiple times at once: {}".format(name)
+				"Attempt to add the same {cls_nm}'s member "
+				"multiple times at once: {itm_nm}".format(
+					cls_nm=cls.__name__, itm_nm=name
+				)
 			)
 		seen_set_add(name)
 
 		return name
 
-	@classmethod
 	def _check_no_clash_base(
-		cls,
+		self,
 		name,  # type: _str_hint
 		class_reserved_children,  # type: _t.Set[str]
-		instance
 	):
 
 		# print "base._check_no_clash_base({}, {}, {})".format(
@@ -205,12 +217,19 @@ class __BaseContainer(object):
 		# )
 		if not (name and isinstance(name, str)):
 			raise ValueError(
-				"The container's child can't have this name: {}".format(repr(name))
+				"{cls_nm}'s member can't have this name: {item_nm}".format(
+					cls_nm=self.__class__.__name__,
+					item_nm=repr(name)
+				)
 			)
 		if name in class_reserved_children:
 			raise ValueError(
-				"The name of a container's class member \"{}\" is overridden "
-				"on the instance: {}".format(name, instance)
+				"The {cls_nm}'s class member {item_nm} is overridden "
+				"on the instance: {inst}".format(
+					cls_nm=self.__class__.__name__,
+					item_nm=repr(name),
+					inst=self
+				)
 			)
 		return name
 
@@ -266,9 +285,9 @@ class Container(__BaseContainer):
 
 	def iteritems(self):
 		class_children = self.__class__._class_children()
-		check_f = self.__class__._check_no_clash_base
+		check_f = self._check_no_clash_base
 		return (
-			(check_f(k, class_children, self), v)
+			(check_f(k, class_children), v)
 			for k, v in self.__dict__.iteritems()
 		)
 
@@ -347,17 +366,21 @@ class Enum(__BaseContainer):
 	):
 		if not isinstance(value, int):
 			raise TypeError(
-				"Enum{} member {} should have int value. Got: {}".format(
-					'({})'.format(repr(enum_nm)) if enum_nm else '',
-					repr(name), repr(value)
+				"{cls_nm}{enum_args} member {nm} should have int value. "
+				"Got: {v}".format(
+					cls_nm=cls.__name__,
+					enum_args='({})'.format(repr(enum_nm)) if enum_nm else '',
+					nm=repr(name), v=repr(value)
 				)
 			)
 		if value in seen_values_set:
 			raise ValueError(
-				"Enum{} can't have multiple members with the same value: {} -> {}".format(
-					'({})'.format(repr(enum_nm)) if enum_nm else '',
-					'({}, {})'.format(seen_values_dict[value], name),
-					value
+				"{cls_nm}{enum_args} can't have multiple members with the same value: "
+				"{clashing_names} -> {v}".format(
+					cls_nm=cls.__name__,
+					enum_args='({})'.format(repr(enum_nm)) if enum_nm else '',
+					clashing_names='({}, {})'.format(seen_values_dict[value], name),
+					v=repr(value)
 				)
 			)
 		seen_values_set_add(value)
@@ -389,9 +412,8 @@ class Enum(__BaseContainer):
 			)
 		)
 
-	@classmethod
 	def __check_no_clash(
-		cls,
+		self,
 		name,  # type: _str_t
 		value,  # type: int
 		enum_nm,  # type: _t.Optional[_str_hint]
@@ -399,12 +421,11 @@ class Enum(__BaseContainer):
 		seen_values_set,  # type: _t.Set[int]
 		seen_values_set_add,  # type: _t.Callable[[int], None]
 		seen_values_dict,  # type: _t.Dict[int, str]
-		instance
 	):
-		name = cls._check_no_clash_base(
-			name, class_reserved_children, instance
+		name = self._check_no_clash_base(
+			name, class_reserved_children
 		)
-		check_f = cls.__check_errors
+		check_f = self.__class__.__check_errors
 		return (
 			name,
 			check_f(
@@ -539,7 +560,7 @@ class Enum(__BaseContainer):
 		return (
 			check_f(
 				k, v, enum_nm, class_children,
-				seen_v, seen_v_add, seen_v_dict, self
+				seen_v, seen_v_add, seen_v_dict
 			) for k, v in gen
 		)
 
