@@ -11,6 +11,7 @@ try:
 	import typing as _t
 except ImportError:
 	pass
+import types as _ts
 from .py_2_3 import (
 	str_t as _str_t,
 	str_hint as _str_hint
@@ -22,6 +23,13 @@ from collections import (
 	Iterator as _Iterator
 )
 import string as __string
+
+# noinspection PyBroadException
+try:
+	_h_batch = _t.Dict[str, _t.Any]
+	_h_batches = _t.Optional[_t.List[_h_batch]]
+except:
+	pass
 
 # allowed chars for the 1st char of a variable name:
 _var_name_start_chars = set(__string.ascii_letters + '_')
@@ -336,26 +344,44 @@ class Container(__BaseContainer):
 class Enum(__BaseContainer):
 	"""
 	A modified version of ``Container`` class
-	designed specifically as enum-style object which values has to be ints.
+	designed specifically as an enum-style object which values are ints.
 
 	=======
-	Example
+	Simple usage
 	=======
 
 	::
 
-		my_enum = Enum('MyEnum')
-		# start building a list of members to attach, but don't add them yet,
-		# to add them later, all in once:
-		my_enum.batch_start()
-
-		my_enum.DEFAULT = 0
+		my_enum = Enum('MyEnum', -1)
+			# -1 is the value of a default item. It should be the 1st one attached.
+		my_enum.DEFAULT = -1
 		my_enum.AAA = 1
-		my_enum.BBB = 1
+		my_enum.BBB = 2
 
-		# actually add all the above members,
-		# also error-checking their names/values:
-		my_enum.batch_end()
+	=======
+	Recommended usage
+	=======
+
+	For performance reasons, the members of an enum need to be internally cached
+	before they can be used. If they are added the simple way (above example),
+	all the enum-members are re-cached each time you add a new one.
+	Using the ``with`` statement, you can avoid unnecessary re-caching,
+	building a list of members to add and then caching them all at once:
+
+	::
+
+		with Enum('MyEnum', -1) as my_enum:
+			my_enum.DEFAULT = -1
+			my_enum.AAA = 1
+			my_enum.BBB = 2
+
+	Note however, that any error-checks are performed only at the caching stage,
+	and caching itself is performed on the exit from the ``with`` block.
+	So if there is any error with any attached member,
+	all the members in a batch are lost.
+
+	But you should debug all enums prior to execution anyway, so this behavior
+	shouldn't be an issue.
 
 	"""
 
@@ -487,12 +513,16 @@ class Enum(__BaseContainer):
 		self,
 		name=None,  # type: _t.Optional[_str_hint]
 		default=0,
+		print_on_cache=False,
 		**children  # type: int
 	):
 		"""
 
 		:param name: An optional name of the enum.
 		:param default: A value of the enum member used as a default mode.
+		:param print_on_cache:
+			Print a message when enum members are cached.
+			Used for debug purposes only.
 		:param children: enum members added right at the initialization.
 		"""
 		super(Enum, self).__init__()
@@ -505,8 +535,9 @@ class Enum(__BaseContainer):
 		# it's class itself who's attempting to set internal values. So:
 		self.__internal_assign = True
 
-		self.__batch_assign = False
-		self.__pending_batch_members = _OrderedDict()  # type: _t.Dict[str, _t.Any]
+		self.__print_on_cache = bool(print_on_cache)
+		self.__pending_batches = None  # type: _h_batches
+
 		self.__enum_name = name  # type: _t.Optional[_str_hint]
 		self.__enum_default_val = default
 		self.__enum_default_key = ''
@@ -514,13 +545,14 @@ class Enum(__BaseContainer):
 		self.__all_keys = frozenset()  # type: _t.FrozenSet[str]
 		self.__all_values = frozenset()  # type: _t.FrozenSet[int]
 		self.__key_mappings = dict()  # type: _t.Dict[int, str]
-		self.__dict__.update(
-			dict(self.__class__.__proper_items(children, name))
-		)
 
 		self.__internal_assign = False
 
-		self.__cache_members()
+		if children:
+			self.__dict__.update(
+				dict(self.__class__.__proper_items(children, name))
+			)
+			self.__cache_members()
 
 	# to avoid getting stuck in a loop trying to set an internal value
 	# while __internal_assign isn't set yet and therefore can't be tested,
@@ -528,9 +560,7 @@ class Enum(__BaseContainer):
 	# to skip all the checks and perform a default assignment:
 	__allowed_internal_names = frozenset({
 		'__doc__',  # let a user to add a custom docstring, also skipping any checks
-		'__batch_assign',
 		'__internal_assign',
-		'_Enum__batch_assign',
 		'_Enum__internal_assign',
 	})
 
@@ -538,7 +568,8 @@ class Enum(__BaseContainer):
 	# from listing all the attached members:
 	__internal_names = frozenset({
 		'_Enum__doc__',
-		'_Enum__pending_batch_members',
+		'_Enum__print_on_cache',
+		'_Enum__pending_batches',
 		'_Enum__enum_name',
 		'_Enum__enum_default_val',
 		'_Enum__enum_default_key',
@@ -547,34 +578,6 @@ class Enum(__BaseContainer):
 		'_Enum__all_values',
 		'_Enum__key_mappings',
 	}.union(__allowed_internal_names))
-
-	def batch_start(self):
-		"""
-		Used in conjunction with ``batch_end()``,
-		to assign multiple enum values as a batch and error-check/cache them
-		later, all at once.
-		"""
-		self.__batch_assign = True
-
-	def batch_end(self):
-		"""
-		Used in conjunction with ``batch_start()``,
-		to assign multiple enum values as a batch and error-check/cache them
-		all at once.
-		"""
-		self.__internal_assign = True
-
-		self.__dict__.update(dict(
-			self.__class__.__proper_items(
-				self.__pending_batch_members,
-				self.__enum_name
-			)
-		))
-		self.__pending_batch_members = _OrderedDict()  # type: _t.Dict[str, _t.Any]
-		self.__batch_assign = False
-
-		self.__internal_assign = False
-		self.__cache_members()
 
 	def __cache_members(self):
 		"""
@@ -586,9 +589,9 @@ class Enum(__BaseContainer):
 		as the last stage of an enum setup, and work with them later using fast
 		hash-sets, rather then perform these checks each time a member is accessed.
 		"""
-		self.__internal_assign = True
-
 		items = sorted(self.__iteritems_no_cache())
+
+		self.__internal_assign = True
 		self.__enum_dict = dict(items)  # type: _t.Dict[str, int]
 		self.__all_keys = frozenset(k for k, v in items)  # type: _t.FrozenSet[str]
 		self.__all_values = frozenset(v for k, v in items)  # type: _t.FrozenSet[int]
@@ -599,8 +602,15 @@ class Enum(__BaseContainer):
 			if self.__enum_default_val not in self.__all_values:
 				self.__enum_default_val = sorted(self.__all_values)[0]
 			self.__enum_default_key = self.__key_mappings[self.__enum_default_val]
-
+		else:
+			self.__enum_default_key = ''
 		self.__internal_assign = False
+
+		if self.__print_on_cache and self.__all_keys:
+			print ('{} set up with members:\n\t{}'.format(
+				self,
+				', '.join(self.__all_keys)
+			))
 
 	def __iteritems_no_cache(self):
 		"""
@@ -635,8 +645,10 @@ class Enum(__BaseContainer):
 		"""
 		Given the value of an enum-member, get it's name.
 
-		If enum doesn't have a mamber with this value, no error is thrown,
+		If enum doesn't have a member with this value, no error is thrown,
 		but the default member's name is returned.
+
+		If there are no members at all (an empty enum), an empty string is returned.
 		"""
 		if value in self.__all_values:
 			return self.__key_mappings[value]
@@ -671,8 +683,8 @@ class Enum(__BaseContainer):
 			super(Enum, self).__setattr__(key, value)
 			return
 
-		if self.__batch_assign:
-			self.__pending_batch_members[key] = value
+		if self.__pending_batches:
+			self.__pending_batches[-1][key] = value
 			return
 
 		# perform check if not batch-assignment:
@@ -703,3 +715,39 @@ class Enum(__BaseContainer):
 
 	def __iter__(self):
 		return self.__all_values.__iter__()  # type: _t.Iterator[int]
+
+	def __enter__(self):
+		# first, let's cache already added batches if there are any - in case
+		# of nested 'with' statements":
+		while self.__pending_batches:
+			self.__exit__(None, None, None)
+
+		self.__internal_assign = True
+		self.__pending_batches = list()  # type: _h_batches
+		self.__internal_assign = False
+		self.__pending_batches.append(_OrderedDict())
+
+		return self
+
+	def __exit__(
+		self,
+		exc_type,  # type: _t.Optional[_t.Type[Exception]]
+		exc_val,  # type:  _t.Optional[Exception]
+		exc_tb  # type: _t.Optional[_ts.TracebackType]
+	):
+		# in case a user had (for some odd reason) nested the same Enum into
+		# multiple 'with' statements, there could be a stack of batches.
+		# now, we treat only the last one:
+		if self.__pending_batches:
+			batch = self.__pending_batches.pop()
+			if batch:
+				self.__dict__.update(dict(
+					self.__class__.__proper_items(batch, self.__enum_name)
+				))
+				self.__cache_members()
+
+		# ... and clean-up if the batch was indeed the only one
+		if not self.__pending_batches:
+			self.__internal_assign = True
+			self.__pending_batches = None
+			self.__internal_assign = False
