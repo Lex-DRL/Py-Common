@@ -654,15 +654,33 @@ class Enum(__BaseContainer):
 			return self.__key_mappings[value]
 		return self.__enum_default_key
 
+	def supp_name(self, name):
+		"""
+		Ensure that the given name is one of enum's members.
+		If not, use the default one.
+		"""
+		if name in self.__all_keys:
+			return name
+		return self.__enum_default_key
+
+	def supp_value(self, val):
+		"""
+		Ensure that the given value is one of enum's members.
+		If not, use the default one.
+		"""
+		if val in self.__all_values:
+			return val
+		return self.__enum_default_val
+
 	@property
 	def all_names(self):
 		"""A set containing **names** of all the enum's members."""
-		return self.__all_keys
+		return self.__all_keys  # type: _t.FrozenSet[str]
 
 	@property
 	def all_values(self):
 		"""A set containing **values** of all the enum's members."""
-		return self.__all_values
+		return self.__all_values  # type: _t.FrozenSet[int]
 
 	@property
 	def enum_name(self):
