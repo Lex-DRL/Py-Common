@@ -26,8 +26,8 @@ import string as __string
 
 # noinspection PyBroadException
 try:
-	_h_batch = _t.Dict[str, _t.Any]
-	_h_batches = _t.Optional[_t.List[_h_batch]]
+	_h_enum_batch = _t.Dict[str, _t.Any]
+	_h_enum_batches = _t.Optional[_t.List[_h_enum_batch]]
 except:
 	pass
 
@@ -536,7 +536,7 @@ class Enum(__BaseContainer):
 		self.__internal_assign = True
 
 		self.__print_on_cache = bool(print_on_cache)
-		self.__pending_batches = None  # type: _h_batches
+		self.__pending_batches = None  # type: _h_enum_batches
 
 		self.__enum_name = name  # type: _t.Optional[_str_hint]
 		self.__enum_default_val = default
@@ -713,6 +713,17 @@ class Enum(__BaseContainer):
 	def __contains__(self, item):
 		return self.__all_values.__contains__(item)
 
+	def __eq__(self, other):
+		if not isinstance(other, Enum):
+			return False
+		return (
+			self.__enum_dict == other.__enum_dict and
+			self.__enum_default_val == other.__enum_default_val
+		)
+
+	def __ne__(self, other):
+		return not self.__eq__(other)
+
 	def __iter__(self):
 		return self.__all_values.__iter__()  # type: _t.Iterator[int]
 
@@ -723,7 +734,7 @@ class Enum(__BaseContainer):
 			self.__exit__(None, None, None)
 
 		self.__internal_assign = True
-		self.__pending_batches = list()  # type: _h_batches
+		self.__pending_batches = list()  # type: _h_enum_batches
 		self.__internal_assign = False
 		self.__pending_batches.append(_OrderedDict())
 
