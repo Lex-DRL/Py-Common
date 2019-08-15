@@ -2,6 +2,9 @@
 
 __author__ = 'Lex Darlog (DRL)'
 
+# based on v1.1.6:
+__all__ = ['Enum', 'IntEnum', 'unique']
+
 try:
 	# support type hints in Python 3:
 	# noinspection PyUnresolvedReferences
@@ -49,13 +52,16 @@ def __pip_inst(
 
 try:
 	try:
+		import enum as _enum_module
 		from enum import *
 	except (AttributeError, ImportError):
 		try:
 			__pip_inst('enum34', True, False)
+			import enum as _enum_module
 			from enum import *
 		except ImportError:
 			__pip_inst(['pip', 'enum34'], True, False)
+			import enum as _enum_module
 			from enum import *
 except BaseException as e:
 	try:
@@ -72,6 +78,7 @@ except BaseException as e:
 			)
 		)
 		__pip_inst([__enum_path], True, True)
+		import enum as _enum_module
 		from enum import *
 
 		print (
@@ -80,6 +87,7 @@ except BaseException as e:
 			'Installing a locally cached version: {}.'.format(e, __enum_path)
 		)
 	except BaseException as e2:
+		from . import __local_fallback as _enum_module
 		from .__local_fallback import *
 		print (
 			'Unable to import a built-in <enum> module '
