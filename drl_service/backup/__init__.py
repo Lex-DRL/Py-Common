@@ -19,7 +19,6 @@ import errno as _errno
 
 from drl_os import process as _prc
 from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
-from . import modes
 
 _errno_all = frozenset(_errno.errorcode.itervalues())
 
@@ -100,6 +99,21 @@ class BackupError(EnvironmentError):
 		return self.__type
 
 
+class BackupMode(__EnumDefault):
+	"""
+	Supported backup methods:
+		* `REPLACE` - remove existing files/folders at the out path before backing up.
+		* `SUBDIR_DATE` - create a sub-folder with the backup date.
+		* `SUBDIR_VER` - create a sub-folder with an incrementing version number.
+	"""
+
+	# default:
+	REPLACE = 1  # type: BackupMode
+
+	SUBDIR_DATE = 2  # type: BackupMode
+	SUBDIR_VER = 3  # type: BackupMode
+
+
 # houdini has a bug disallowing to use '\\' directly. So:
 _wrong_slash = 'z\\z'[1]
 _right_slash = 'z/z'[1]
@@ -114,7 +128,7 @@ def _unix_p(
 def copy_dir(
 	src_path,  # type: _str_hint
 	out_path,  # type: _str_hint
-	mode=modes.REPLACE
+	mode=None  # type: _t.Optional[_t.Union[BackupMode, int]]
 ):
-
+	mode = BackupMode.get(mode)  # type: BackupMode
 	src_path = _unix_p(_path.abspath(src_path))
