@@ -6,17 +6,7 @@ try:
 except ImportError:
 	pass
 
-try:
-	from enum import Enum
-except ImportError as er_enum:
-	import sys
-	py_ver = sys.version_info[:2]  # (2, 7)
-	if py_ver[0] >= 3 and py_ver[1] >= 4:  # 3.4+, but somehow enums don't exist
-		raise ImportError(er_enum.message + " (though Python version is higher than 3.4)")
-
-	from modules import pip_install as _inst
-	_inst('enum34')
-	from enum import Enum
+from drl_common.py_2_3.enum import Enum
 
 from pprint import pprint as pp
 import os as _os

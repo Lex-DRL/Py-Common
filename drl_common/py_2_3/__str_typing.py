@@ -1,10 +1,10 @@
 """Version-independent type hints for string/unicode."""
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = [
+__all__ = (
 	'str_t', 'str_hint',
 	't_strict_str', 't_strict_unicode',
-]
+)
 
 try:
 	# support type hints in Python 3:

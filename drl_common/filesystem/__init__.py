@@ -18,9 +18,10 @@ except ImportError:
 
 import drl_common.errors as err
 from drl_common import utils
-from . import detect_encoding_modes, errors, error_check, file_time
-from .. import is_maya as _im
+from . import errors, error_check, file_time
 from modules import pip_install as _inst
+from drl_common import is_maya as _im
+from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
 
 _is_maya = _im.is_maya()
 if _is_maya:
@@ -32,14 +33,20 @@ class FileFilter(object):
 	Class that formats file-filter string in the common way.
 
 	To get the formatted version, just use str() on the instance.
-
-	:param name: <str> User-friendly filter description.
-	:param filters: <tuple of strings> File masks (like: '*.ma')
 	"""
-	def __init__(self, name, filters=None):
+	def __init__(
+		self,
+		name,  # type: _str_hint
+		filters=None  # type: _t.Optional[_t.Tuple[_str_hint, ...]]
+	):
+		"""
+
+		:param name: User-friendly filter description.
+		:param filters: File masks (like: '*.ma')
+		"""
 		super(FileFilter, self).__init__()
 		self.__name = ''
-		self.__filters = tuple()
+		self.__filters = tuple()  # type: _t.Tuple[_str_hint, ...]
 		self._set_name(name)
 		self._set_filters(filters)
 
@@ -50,7 +57,7 @@ class FileFilter(object):
 		lambda x: isinstance(x, (list, tuple)) and all(
 			[isinstance(f, (str, unicode)) for f in x]
 		)
-	]
+	]  # type: _t.List[_t.Callable[[_t.Any], bool]]
 
 	@staticmethod
 	def error_check_condition(x):
@@ -63,9 +70,12 @@ class FileFilter(object):
 		return any([c(file_filter) for c in FileFilter.__error_check_conditions])
 
 	@staticmethod
-	def error_check_as_argument(file_filter, arg_name=None):
+	def error_check_as_argument(
+		file_filter,
+		arg_name=None  # type: _t.Optional[_str_hint]
+	):
 		"""
-		Ensures the given argument is FileFilter.
+		Ensures the given argument is ``FileFilter``.
 
 		If it is, just returns the same instance.
 
@@ -78,8 +88,7 @@ class FileFilter(object):
 			* 2 or more items - the 1st string is a name, the others are filters.
 
 		:param file_filter: the argument itself
-		:param arg_name: <optional str> name of the argument (for proper error message).
-		:return: <FileFilter>
+		:param arg_name: a name of the argument (for proper error message).
 		"""
 		conditions = FileFilter.__error_check_conditions
 		if conditions[0](file_filter):
@@ -124,7 +133,8 @@ class FileFilter(object):
 		"""
 		Performs error-check for <filters> argument.
 
-		WARNING! The result is list. It's your responsibility to convert it back to tuple.
+		WARNING! The result is list. It's your responsibility
+		to convert it back to tuple.
 
 		Check for duplicates is not performed. It's up you you, too.
 		"""
@@ -147,22 +157,25 @@ class FileFilter(object):
 		return filters
 
 	def _set_filters(self, filters):
-		filters = FileFilter._error_check_filters_as_list(filters)
-		self.__filters = tuple(utils.remove_duplicates(filters))
+		flt = FileFilter._error_check_filters_as_list(filters)
+		flt = utils.remove_duplicates(flt)
+		self.__filters = tuple(flt)  # type: _t.Tuple[_str_hint, ...]
 
 	def set_filters(self, filters):
 		self._set_filters(filters)
 		return self
 
 	def append_filters(self, filters):
-		filters_nu = list(self.__filters)
-		filters_nu.extend(FileFilter._error_check_filters_as_list(filters))
-		self.__filters = tuple(utils.remove_duplicates(filters_nu))
+		flt = list(self.__filters)
+		flt.extend(FileFilter._error_check_filters_as_list(filters))
+		flt = utils.remove_duplicates(flt)
+		self.__filters = tuple(flt)  # type: _t.Tuple[_str_hint, ...]
 		return self
 
 	@property
 	def filters(self):
-		return self.__filters[:]
+		res = self.__filters[:]  # type: _t.Tuple[_str_hint, ...]
+		return res
 
 	@filters.setter
 	def filters(self, value):
@@ -176,7 +189,9 @@ class FileFilter(object):
 		return ' '.join(joined_list)
 
 	def __repr__(self):
-		return "< %s('%s', %s) class instance >" % (self.__class__.__name__, self.__name, self.__filters)
+		return "< {}({}, {}) class instance >".format(
+			self.__class__.__name__, repr(self.__name), repr(self.__filters)
+		)
 
 	def __str__(self):
 		return self.as_string()
@@ -202,42 +217,48 @@ def __convert_path_slashes(
 	return path
 
 
-def to_windows_path(path, trailing_slash=None, leading_slash=False):
+def to_windows_path(
+	path,  # type: _str_hint
+	trailing_slash=None,  # type: _t.Optional[bool]
+	leading_slash=False  # type: _t.Optional[bool]
+):
 	"""
 	Ensures given path has Windows-style slashes. ("/" -> "\")
 
-	:type path: str|unicode
+	:param path: The path.
 	:param trailing_slash:
 		Whether we need to ensure path has or lacks trailing slash:
-			* None: (default) no check performed. Leave as is, just replace path slashes.
-			* 0/False: Force-remove trailing slash
-			* 1/True: Force-leave (single) trailing slash.
-	:type trailing_slash: bool|None
+			*
+				``None``: (default) no check performed.
+				Leave as is, just replace path slashes.
+			* ``False``: Force-remove trailing slash
+			* ``True``: Force-leave (single) trailing slash.
 	:param leading_slash:
-		The same for leading slash. However, it's <0> (force-removed) by default.
-	:type leading_slash: bool|None
-	:rtype: str|unicode
+		The same for leading slash.
+		However, it's `False` (force-removed) by default.
 	"""
 	return __convert_path_slashes(path, '/', '\\', trailing_slash, leading_slash)
 
 
-def to_unix_path(path, trailing_slash=None, leading_slash=False):
+def to_unix_path(
+	path,  # type: _str_hint
+	trailing_slash=None,  # type: _t.Optional[bool]
+	leading_slash=False  # type: _t.Optional[bool]
+):
 	"""
 	Ensures given path has unix-style slashes. ("\" -> "/")
 
-	:type path: str|unicode
+	:param path: The path.
 	:param trailing_slash:
 		Whether we need to ensure path has or lacks trailing slash:
 			*
-				`None`: (default) no check performed.
+				``None``: (default) no check performed.
 				Leave as is, just replace path slashes.
-			* `False`: Force-remove trailing slash
-			* `True`: Force-leave (single) trailing slash.
-	:type trailing_slash: bool|None
+			* ``False``: Force-remove trailing slash
+			* ``True``: Force-leave (single) trailing slash.
 	:param leading_slash:
 		The same for leading slash.
 		However, it's `False` (force-removed) by default.
-	:type leading_slash: bool|None
 	"""
 	return __convert_path_slashes(
 		path,
@@ -247,12 +268,16 @@ def to_unix_path(path, trailing_slash=None, leading_slash=False):
 
 
 def __is_overwrite_enabled(
-	overwrite, path,
+	overwrite,  # type: _t.Union[int, bool]
+	path,  # type: _str_hint
 	yes_button='Yes', no_button='No (error)',
-	message='''You're trying to access a file as a folder.
-Replace file with an empty folder?
-{0}''',
-	annotation_yes='The file will be removed and a folder at the same path will be created',
+	message=(
+		"You're trying to access a file as a folder.\n"
+		"Replace file with an empty folder?\n{}"
+	),
+	annotation_yes=(
+		'The file will be removed and a folder at the same path will be created'
+	),
 	annotation_no='Unable to continue, the error will be thrown',
 	icon='warning'
 ):
@@ -261,14 +286,12 @@ Replace file with an empty folder?
 
 	:param overwrite:
 		What to do if we face a case where we need to overwrite a file/folder.
-			* 0/False: Nothing. Error is thrown.
-			* 1/True: Overwrite.
+			* 0/``False``: Nothing. Error is thrown.
+			* 1/``True``: Overwrite.
 			*
 				2 or more when called from Maya:
 				display interactive dialog allowing a user to choose.
-				When called outside of Maya, considered as <True>.
-	:type overwrite: int|bool
-	:type path: str|unicode
+				When called outside of Maya, considered as ``True``.
 	"""
 	if _is_maya and overwrite > 1:
 		user_choice = cmds.confirmDialog(
@@ -286,16 +309,19 @@ Replace file with an empty folder?
 	return bool(overwrite)
 
 
-def ensure_breadcrumbs_are_folders(path, overwrite=0):
+def ensure_breadcrumbs_are_folders(
+	path,  # type: _str_hint
+	overwrite=0  # type: _t.Union[int, bool]
+):
 	"""
 	All the parent folders of the given filesystem object (a file / child folder)
 	are recursively checked whether they are actually folders.
 
 	If they don't exist, they're created.
-	If any of parents is actually a file itself, either it's removed or an error is thrown.
+	If any of parents is actually a file itself, either it's removed
+	or an error is thrown.
 
 	:param path: File path (absolute recommended).
-	:type path: str|unicode
 	:param overwrite:
 		What to do if a parent folder is actually a file itself:
 			* 0/False: Nothing. Error is thrown.
@@ -303,11 +329,10 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 			*
 				2 or more when called from Maya:
 				display interactive dialog allowing a user to choose.
-				When called outside of Maya, considered as <True>.
+				When called outside of Maya, considered as ``True``.
 	:return:
 		Cleaned-up path on success.
 		I.e., unix-style slashes, removed extra trailing/leading slashes.
-	:rtype: str|unicode
 	:raises:
 		* NotStringError - path isn't a string at all
 		* EmptyStringError - path is empty
@@ -373,25 +398,26 @@ def ensure_breadcrumbs_are_folders(path, overwrite=0):
 	return path
 
 
-def clean_path_for_folder(path, overwrite=0):
+def clean_path_for_folder(
+	path,  # type: _str_hint
+	overwrite=0  # type: _t.Union[int, bool]
+):
 	"""
 	Creates the given folder path. Creates intermediate directories if needed.
 
 	:param path:
 		Folder path. Any slashes. Doesn't matter if there's trail-slash.
-	:type path: str|unicode
 	:param overwrite:
 		What to do if a parent folder is actually a file itself:
-			* 0/False: Nothing. Error is thrown.
-			* 1/True: Remove file and create folder with it's name.
+			* 0/``False``: Nothing. Error is thrown.
+			* 1/``True``: Remove file and create folder with it's name.
 			*
 				2 or more when called from Maya:
 				display interactive dialog allowing a user to choose.
-				When called outside of Maya, considered as <True>.
+				When called outside of Maya, considered as ``True``.
 	:return:
 		Cleaned-up path on success.
 		I.e., unix-style slashes, removed extra trailing/leading slashes.
-	:rtype: str|unicode
 	"""
 	path = ensure_breadcrumbs_are_folders(path, overwrite)
 	# it's guaranteed to have no trailing slash now
@@ -421,30 +447,33 @@ def clean_path_for_folder(path, overwrite=0):
 	raise errors.FileAlreadyExist(path, overwrite)
 
 
-def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
+def clean_path_for_file(
+	path,  # type: _str_hint
+	overwrite_folders=0,  # type: _t.Union[int, bool]
+	remove_file=0  # type: _t.Union[int, bool]
+):
 	"""
 	Prepares the path for a file. I.e.:
 		* creates parent directories
 		* removes the existing file if needed
 
 	:param path: Folder path. Any slashes. Doesn't matter if there's trail-slash.
-	:type path: str|unicode
 	:param overwrite_folders:
 		What to do if a parent folder is actually a file itself:
-			* 0/False: Nothing. Error is thrown.
-			* 1/True: Remove file and create folder with it's name.
-			*
-				2 or more when called from Maya: display interactive dialog allowing a user to choose.
-				When called outside of Maya, considered as <True>.
-	:param remove_file:
-		Whether to automatically remove a file at the given path:
-			* 0/False: Nothing. Error is thrown.
-			* 1/True: Overwrite.
+			* 0/``False``: Nothing. Error is thrown.
+			* 1/``True``: Remove file and create folder with it's name.
 			*
 				2 or more when called from Maya:
 				display interactive dialog allowing a user to choose.
-				When called outside of Maya, considered as <True>.
-	:type remove_file: int|bool
+				When called outside of Maya, considered as ``True``.
+	:param remove_file:
+		Whether to automatically remove a file at the given path:
+			* 0/``False``: Nothing. Error is thrown.
+			* 1/``True``: Overwrite.
+			*
+				2 or more when called from Maya:
+				display interactive dialog allowing a user to choose.
+				When called outside of Maya, considered as ``True``.
 	:return:
 		3 results:
 			*
@@ -495,6 +524,41 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 # ---------------------------------------------------------
 
 
+class DetectEncodingMode(__EnumDefault):
+	"""
+	The modes supported by encoding detection for txt-file.
+
+	No external dependencies:
+		*
+			**BUILT_IN**: Detect only `ascii` or `utf-8` (with 1.0 precision) if
+			possible, use the default system's codepage (with 0.0 precision) otherwise.
+
+	Depending on external modules,
+	the above "dummy" check (BOM/UTF-8/ASCII) is **NOT** performed:
+		* **CHARDET**: use `chardet` module only.
+		* **CHARDET_DAMMIT**: use `chardet` **WITH** `beautifulsoup4.UnicodeDammit`.
+
+	A combination of both previous approaches.
+	First, try to detect the encoding the "dummy" way (BOM/UTF-8/ASCII).
+	Then, if no success, use the modules specified above:
+		* **FALLBACK_CHARDET**
+		* **FALLBACK_CHARDET_DAMMIT**
+
+	"""
+
+	# default:
+	BUILT_IN = 0  # type: DetectEncodingMode
+
+	CHARDET = 1  # type: DetectEncodingMode
+	CHARDET_DAMMIT = 2  # type: DetectEncodingMode
+
+	FALLBACK_CHARDET = 3  # type: DetectEncodingMode
+	FALLBACK_CHARDET_DAMMIT = 4  # type: DetectEncodingMode
+
+
+_detEncMode = DetectEncodingMode
+
+
 def empty_dir(path, overwrite=0):
 	path = clean_path_for_folder(path, overwrite)
 	if not os.path.exists(path):
@@ -511,19 +575,25 @@ def empty_dir(path, overwrite=0):
 
 
 def detect_file_encoding(
-	file_path,
+	file_path,  # type: _str_hint
 	limit=64*1024,  # 64 Kb
-	mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT
+	mode=None  # type: _t.Optional[DetectEncodingMode, int]
 ):
 	"""
 
-	:type file_path: str|unicode
-	:param limit: max amount of bytes read from the file. If non-int or 0 and less, read it entirely .
-	:param mode: one of the options from `detect_encoding_modes` submodule.
+	:param file_path: the path of file to read.
+	:param limit:
+		max amount of bytes read from the file.
+		If non-int or 0 and less, read it entirely.
+	:param mode:
+		One of the options from ``DetectEncodingMode`` enum.
+		**FALLBACK_CHARDET_DAMMIT** if omitted.
 	:return:
 		* `str` detected encoding
 		* `float` how sure the detector is:
-			* in **BUILT_IN** mode, 1.5 on success (to differentiate from the actual detection), 0.0 if default encoding returned
+			* in **BUILT_IN** mode:
+				* 1.5 on success (to differentiate from the actual detection),
+				* 0.0 if default encoding returned
 			* in `chardet` mode, the actual 'sureness' of detector
 			* in `UnicodeDammit` mode, always excactly 2.5
 	"""
@@ -552,14 +622,9 @@ def detect_file_encoding(
 
 	if isinstance(mode, float):
 		mode = int(mode)
-	if not isinstance(mode, int):
-		# noinspection PyBroadException,PyPep8
-		try:
-			mode = int(mode)
-		except:
-			mode = int(bool(mode))
-	if mode < 1:
-		mode = 0
+	mode = _detEncMode.get(
+		mode, default=_detEncMode.FALLBACK_CHARDET_DAMMIT
+	)
 
 	if not (isinstance(limit, int) and limit > 0):
 		limit = None
@@ -574,8 +639,8 @@ def detect_file_encoding(
 	def _mode_no_modules(bytes_string):
 		"""
 		The simplest mode.
-		It has no dependencies on external modules, but can only differentiate
-		ascii from UTF and assumes the default codepage if neither of those is detected.
+		It has no dependencies on external modules, but can only differentiate ascii
+		from UTF and assumes the default codepage if neither of those is detected.
 
 		Based on: https://unicodebook.readthedocs.io/guess_encoding.html
 		"""
@@ -632,7 +697,8 @@ def detect_file_encoding(
 				res_enc = UniversalDetector.ISO_WIN_MAP[enc_clean].lower()  # type: str
 			except KeyError:
 				try:
-					res_enc = UniversalDetector.ISO_WIN_MAP[enc_clean.replace('_', '-')].lower()  # type: str
+					enc_clean = enc_clean.replace('_', '-')
+					res_enc = UniversalDetector.ISO_WIN_MAP[enc_clean].lower()  # type: str
 				except KeyError:
 					pass
 		res_precision = detect['confidence']  # type: float
@@ -646,27 +712,37 @@ def detect_file_encoding(
 		res_enc = detected_dammit.original_encoding  # type: str
 		return res_enc, 2.5
 
-	if mode == 0 or mode > 2:
+	if mode in {
+		_detEncMode.BUILT_IN,
+		_detEncMode.FALLBACK_CHARDET,
+		_detEncMode.FALLBACK_CHARDET_DAMMIT
+	}:
 		# try to detect using no external modules:
 		detected = _mode_no_modules(raw)
 		if detected:
 			return detected, 1.5
 		# we had no success. The next behavior depends on the mode:
-		if mode == 0:
+		if mode is _detEncMode.BUILT_IN:
 			# use the default system's encoding:
 			import locale
 			detected = locale.getpreferredencoding()  # type: str
 			return detected, 0.0
 		# continue detecting with the help of external modules:
-		mode = mode - 2  # 3 -> 1; 4 -> 2
+		mode = {
+			_detEncMode.FALLBACK_CHARDET:        _detEncMode.CHARDET,
+			_detEncMode.FALLBACK_CHARDET_DAMMIT: _detEncMode.CHARDET_DAMMIT,
+		}[mode]
 
 	try:
 		import chardet
 	except ImportError:
-		_inst('chardet')
+		try:
+			_inst('chardet')
+		except ImportError:
+			_inst('pip chardet')
 
-	if mode == 1:
-		# actually, also mode 3 if no-modules approach didn't do the job
+	if mode is _detEncMode.CHARDET:
+		# actually, also FALLBACK_CHARDET if no-modules approach didn't do the job
 		return _mode_chardet(raw)
 
 	# the 'UnicodeDammit+chardet' mode if we got here
@@ -675,7 +751,10 @@ def detect_file_encoding(
 		# noinspection PyProtectedMember
 		from bs4 import UnicodeDammit
 	except ImportError:
-		_inst('beautifulsoup4')
+		try:
+			_inst('beautifulsoup4')
+		except ImportError:
+			_inst('pip beautifulsoup4')
 
 	return _mode_unicode_dammit(raw)
 
@@ -705,11 +784,12 @@ def read_file_lines(
 	:param line_process_f:
 		An optional function processing a single line as file is being read.
 		This lets you get a list of lines that are already processed,
-		which is much more memory-effecient and performant then reading a file first
+		which is much more memory-efficient and performant then reading a file first
 		and then processing the entire list as a whole new step.
 
 		When provided and newline-char stripping is also enabled, the **stripping is
-		performed first** (your function already gets a string with no trailing newline-char).
+		performed first**
+		(your function already gets a string with no trailing newline-char).
 	"""
 	error_check.file_readable(file_path)
 
@@ -758,38 +838,52 @@ def read_file_lines_best_enc(
 	strip_newline_char=True,
 	line_process_f=None,  # type: _t.Optional[_t.Callable[[_str_hint], _str_hint]]
 	detect_limit=64*1024,  # 64 Kb
-	detect_mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT,
+	detect_mode=None,
 	sure_thresh=0.5
 ):
 	"""
-	A wrapper, combining `detect_file_encoding()` and `read_file_lines()` and a few different read attempts
-	into a single function, which should try read a file with an unknown encoding the best way possible.
+	A wrapper, combining `detect_file_encoding()` and `read_file_lines()` and
+	a few different read attempts into a single function, which should try read
+	a file with an unknown encoding the best way possible.
 
 	First, it detects a file encoding. Then it reads it:
-		* If detected 'sureness' is enough (higher or equal to `sure_thresh`), read the file using detected enc.
+		*
+			If detected 'sureness' is enough (higher or equal to `sure_thresh`),
+			read the file using detected enc.
 		* If not, try to read as ascii first.
-		* If still no success, with no encoding at all (using the basic `open()`, not `io.open()`).
+		*
+			If still no success, with no encoding at all (using the basic `open()`,
+			not `io.open()`).
 
-	For any argument other than `sure_thresh`, consult either `detect_file_encoding()` or `read_file_lines()`.
+	For any argument other than `sure_thresh`, consult either
+	``detect_file_encoding()`` or ``read_file_lines()``.
 
 	:return:
 		* `List of strings/unicodes` - the read file lines.
 		* `string` encoding on success, `None` if the basic `open()` was used.
 		* `float` how sure the detector is about it's encoding.
 	"""
-	encoding, enc_sure = detect_file_encoding(file_path, detect_limit, detect_mode)
+	encoding, enc_sure = detect_file_encoding(
+		file_path, limit=detect_limit, mode=detect_mode
+	)
 	not_enough_sure = bool(enc_sure < sure_thresh)
 	if not_enough_sure or not encoding:
 		try:
 			encoding = 'ascii'
-			lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+			lines = read_file_lines(
+				file_path, encoding, strip_newline_char, line_process_f
+			)
 			if not_enough_sure:
 				enc_sure = 1.0
 		except UnicodeDecodeError:
 			encoding = None
-			lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+			lines = read_file_lines(
+				file_path, encoding, strip_newline_char, line_process_f
+			)
 	else:
-		lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+		lines = read_file_lines(
+			file_path, encoding, strip_newline_char, line_process_f
+		)
 
 	return lines, encoding, enc_sure
 
@@ -832,10 +926,11 @@ def dir_tree_gen(
 	trailing_slash=False
 ):
 	"""
-	A wrapper on top of `os.walk()`, providing a flat sequence of the whole directory tree.
-	Path separators are always unix-style slashes.
+	A wrapper on top of `os.walk()`, providing a flat sequence of the whole
+	directory tree. Path separators are always unix-style slashes.
 
-	:param trailing_slash: If `True`, all the directories will have a trailing slash.
+	:param trailing_slash:
+		If `True`, all the directories will have a trailing slash.
 	"""
 	if not (root and isinstance(root, _str_t)):
 		return
@@ -862,9 +957,13 @@ def dir_tree_gen(
 			trailed = trailed[0]  # to preserve unicode
 		return no_trail, trailed
 
-	_cleanup_cur_root = _cleanup_cur_root_trailed if trailing_slash else _cleanup_cur_root_no_trail
+	_cleanup_cur_root = (
+		_cleanup_cur_root_trailed if trailing_slash else _cleanup_cur_root_no_trail
+	)
 
-	for cur_root, dirs, files in os.walk(root, topdown=topdown, onerror=onerror, followlinks=followlinks):
+	for cur_root, dirs, files in os.walk(
+		root, topdown=topdown, onerror=onerror, followlinks=followlinks
+	):
 		cur_root, cur_trailed = _cleanup_cur_root(cur_root)
 		yield cur_root
 		for fl in files:
