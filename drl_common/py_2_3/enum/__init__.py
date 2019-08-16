@@ -207,6 +207,18 @@ class EnumDefault(IntEnum):
 		tmp_lst.append(member)
 		cls.__all_ordered = tuple(tmp_lst)  # type: _t.Tuple[EnumDefault, ...]
 
+	@property
+	def name(self):
+		""""The name of enum member."""
+		res = super(EnumDefault, self).name  # type: _str_hint
+		return res
+
+	@property
+	def value(self):
+		""""The actual ``int`` value of enum member."""
+		res = super(EnumDefault, self).value  # type: int
+		return res
+
 	@classmethod
 	def get(
 		cls,
