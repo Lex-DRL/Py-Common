@@ -1,6 +1,5 @@
 __author__ = 'Lex Darlog (DRL)'
 
-from . import pip_error_types as _err_t
 import collections as _col
 
 try:
@@ -9,42 +8,48 @@ try:
 	import typing as _t
 except ImportError:
 	pass
+
 from drl_common.utils import flatten_gen as _flatten
 from drl_common.py_2_3 import (
 	str_t as _str_t,
 	str_hint as _str_hint
 )
+from drl_common.py_2_3.enum import (
+	EnumDefault as __EnumDefault,
+	override_default as __default
+)
+
+
+@__default(0)
+class PipErrorType(__EnumDefault):
+	"""
+	Supported modes of `PipError`.
+	"""
+	CUSTOM = -1
+	UNKNOWN = 0  # default
+	NO_PIP = 1
+	MODULE_CANT_IMPORT = 2
 
 
 class PipError(ImportError):
 	"""
 	A subset of `ImportError` signaling that there was some error with pip.
 	"""
-	@staticmethod
-	def __cleanup_type(error_type):
-		"""
-		Ensure that the provided error-type-code is supported one.
-		Otherwise, set it to unknown.
-		"""
-		try:
-			type_key = _err_t.type_key(error_type)
-			return _err_t.all_types[type_key]
-		except KeyError:
-			return _err_t.UNKNOWN
 
 	# noinspection PyShadowingBuiltins
 	def __init__(
 		self,
 		message='',  # type: _str_hint
-		type=_err_t.UNKNOWN
+		type=PipErrorType.UNKNOWN  # type: _t.Union[PipErrorType, _str_hint, int]
 	):
 		super(PipError, self).__init__(message)
-		self.__type = self.__cleanup_type(type)
+		self.__type = PipErrorType.get(type)  # type: PipErrorType
 		self.args = (message, type)
 
 	@property
 	def type(self):
-		return self.__type
+		res = self.__type
+		return res
 
 
 # noinspection PyIncorrectDocstring
@@ -131,7 +136,9 @@ def pip_install(
 			from pip import _internal as pip_internal
 			main_f = pip_internal.main
 		except (AttributeError, ImportError):
-			raise PipError("PIP isn't installed or can't be found", type=_err_t.NO_PIP)
+			raise PipError(
+				"PIP isn't installed or can't be found", type=PipErrorType.NO_PIP
+			)
 	main_f(pip_args)
 
 	try:
@@ -159,5 +166,5 @@ def pip_install(
 			"The following modules can't be imported. "
 			"Probably because they were just installed by PIP and "
 			"Python interpreter needs to be restarted first:\n" + '\n'.join(not_importable),
-			_err_t.MODULE_CANT_IMPORT
+			PipErrorType.MODULE_CANT_IMPORT
 		)
