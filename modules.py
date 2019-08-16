@@ -25,10 +25,12 @@ class PipErrorType(__EnumDefault):
 	"""
 	Supported modes of `PipError`.
 	"""
-	CUSTOM = -1
-	UNKNOWN = 0  # default
-	NO_PIP = 1
-	MODULE_CANT_IMPORT = 2
+	CUSTOM = -1  # type: PipErrorType
+	NO_PIP = 1  # type: PipErrorType
+	MODULE_CANT_IMPORT = 2  # type: PipErrorType
+
+	# default:
+	UNKNOWN = 0  # type: PipErrorType
 
 
 class PipError(ImportError):
@@ -44,12 +46,11 @@ class PipError(ImportError):
 	):
 		super(PipError, self).__init__(message)
 		self.__type = PipErrorType.get(type)  # type: PipErrorType
-		self.args = (message, type)
+		self.args = (message, self.__type)
 
 	@property
 	def type(self):
-		res = self.__type
-		return res
+		return self.__type
 
 
 # noinspection PyIncorrectDocstring
