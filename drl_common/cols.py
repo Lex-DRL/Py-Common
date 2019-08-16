@@ -11,25 +11,14 @@ try:
 	import typing as _t
 except ImportError:
 	pass
-import types as _ts
+
 from .py_2_3 import (
 	str_t as _str_t,
 	str_hint as _str_hint
 )
 
-from collections import (
-	OrderedDict as _OrderedDict,
-	Iterable as _Iterable,
-	Iterator as _Iterator
-)
 import string as __string
-
-# noinspection PyBroadException
-try:
-	_h_enum_batch = _t.Dict[str, _t.Any]
-	_h_enum_batches = _t.Optional[_t.List[_h_enum_batch]]
-except:
-	pass
+from collections import Iterable as _Iterable
 
 # allowed chars for the 1st char of a variable name:
 _var_name_start_chars = set(__string.ascii_letters + '_')
@@ -87,7 +76,7 @@ class DefaultList(list):
 		)
 
 
-class __BaseContainer(object):
+class _BaseContainer(object):
 
 	@classmethod
 	def _class_children(cls):
@@ -243,7 +232,7 @@ class __BaseContainer(object):
 		return name
 
 
-class Container(__BaseContainer):
+class Container(_BaseContainer):
 	"""
 	Just a dummy service class, acting like
 	an editable namedtuple.
