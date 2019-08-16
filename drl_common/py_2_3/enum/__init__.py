@@ -3,7 +3,7 @@
 __author__ = 'Lex Darlog (DRL)'
 
 # based on v1.1.6:
-__all__ = ['Enum', 'IntEnum', 'unique', 'EnumDefault']
+__all__ = ['Enum', 'IntEnum', 'unique', 'EnumDefault', 'override_default']
 
 try:
 	# support type hints in Python 3:
@@ -103,6 +103,24 @@ class EnumDefault(IntEnum):
 	method.
 	It allows you to fall back to a default enum member if you try to query a key
 	(a name or int-value) of a member that this Enum doesn't have.
+
+	The default member is the one with the smallest int value (incl. negative).
+	But you can override that using the ``override_default`` decorator:
+
+	=======
+	Example
+	=======
+
+	::
+
+		@override_default(3)
+		class TestEnum(EnumDefault):
+			BBB = 2
+			CCC = 3  # will be set as default
+			ZZZ = -17
+			AAA = 1
+			DDD = 4
+
 	"""
 
 	def __init__(self, *args, **kwargs):
@@ -117,8 +135,9 @@ class EnumDefault(IntEnum):
 		super(EnumDefault, self).__init__(*args, **kwargs)
 		if not self.__is_init():
 			self.__cls_init()
-		if self.__get_default() is None:
-			self.__set_default(self)
+		cur_default = self.__get_default()
+		if cur_default is None or self.value < cur_default.value:
+			self._set_default(self)
 		self.__append_member(self)
 
 	@classmethod
@@ -152,11 +171,11 @@ class EnumDefault(IntEnum):
 	@classmethod
 	def __get_default(cls):
 		"""Used to get the default value on an instance."""
-		return cls.__default
+		return cls.__default  # type: EnumDefault
 
 	@classmethod
-	def __set_default(cls, val):
-		"""set the default enum member (instance). No checks."""
+	def _set_default(cls, val):
+		"""Set the default enum member (instance). No checks."""
 		cls.__default = val
 
 	@classmethod
@@ -249,3 +268,32 @@ class EnumDefault(IntEnum):
 			cls.__key_mappings[key] if key in cls.__all_keys else default
 		)  # type: EnumDefault
 		return res
+
+	@classmethod
+	def item_name(
+		cls,
+		key,  # type: _t.Union[_str_hint, IntEnum, int]
+		default=None  # type: _t.Optional[EnumDefault]
+	):
+		return cls.get(key, default=default).name
+
+	@classmethod
+	def item_value(
+		cls,
+		key,  # type: _t.Union[_str_hint, IntEnum, int]
+		default=None  # type: _t.Optional[EnumDefault]
+	):
+		return cls.get(key, default=default).value
+
+
+def override_default(
+	item_id  # type: int
+):
+	def set_default_id(
+		cls,  # type: _t.Type[EnumDefault]
+	):
+		# print (cls, item_id)
+		if isinstance(item_id, int):
+			cls._set_default(cls.get(item_id))
+		return cls
+	return set_default_id
