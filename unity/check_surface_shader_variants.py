@@ -1,6 +1,7 @@
 __author__ = 'DRL'
 from drl_common import filesystem as fs
 
+
 class Check(object):
 	__def_separator = '// -------- variant for:'
 	__def_separator_lines = 2
@@ -36,7 +37,9 @@ class Check(object):
 
 	def read(self, strip_newline_character=True):
 		file_path = self.file_path
-		encoding = fs.detect_file_encoding(file_path, mode=1)[0]
+		encoding = fs.detect_file_encoding(
+			file_path, mode=fs.DetectEncodingMode.CHARDET
+		)[0]
 		self.__lines = fs.read_file_lines(file_path, encoding, strip_newline_character)
 		return self
 

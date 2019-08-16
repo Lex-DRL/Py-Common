@@ -142,7 +142,7 @@ def reformat_file(file_path=''):
 
 	lines, encoding, enc_sure = _fs.read_file_lines_best_enc(
 		file_path, True, line_process_f=reformat_line,
-		detect_limit=256*1024, detect_mode=_fs.detect_encoding_modes.FALLBACK_CHARDET
+		detect_limit=256*1024, detect_mode=_fs.DetectEncodingMode.FALLBACK_CHARDET
 	)
 
 	_fs.write_file_lines(file_path, lines, encoding)

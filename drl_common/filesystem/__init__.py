@@ -18,9 +18,10 @@ except ImportError:
 
 import drl_common.errors as err
 from drl_common import utils
-from . import detect_encoding_modes, errors, error_check, file_time
-from .. import is_maya as _im
+from . import errors, error_check, file_time
 from modules import pip_install as _inst
+from drl_common import is_maya as _im
+from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
 
 _is_maya = _im.is_maya()
 if _is_maya:
@@ -495,6 +496,41 @@ def clean_path_for_file(path, overwrite_folders=0, remove_file=0):
 # ---------------------------------------------------------
 
 
+class DetectEncodingMode(__EnumDefault):
+	"""
+	The modes supported by encoding detection for txt-file.
+
+	No external dependencies:
+		*
+			**BUILT_IN**: Detect only `ascii` or `utf-8` (with 1.0 precision) if
+			possible, use the default system's codepage (with 0.0 precision) otherwise.
+
+	Depending on external modules,
+	the above "dummy" check (BOM/UTF-8/ASCII) is **NOT** performed:
+		* **CHARDET**: use `chardet` module only.
+		* **CHARDET_DAMMIT**: use `chardet` **WITH** `beautifulsoup4.UnicodeDammit`.
+
+	A combination of both previous approaches.
+	First, try to detect the encoding the "dummy" way (BOM/UTF-8/ASCII).
+	Then, if no success, use the modules specified above:
+		* **FALLBACK_CHARDET**
+		* **FALLBACK_CHARDET_DAMMIT**
+
+	"""
+
+	# default:
+	BUILT_IN = 0  # type: DetectEncodingMode
+
+	CHARDET = 1  # type: DetectEncodingMode
+	CHARDET_DAMMIT = 2  # type: DetectEncodingMode
+
+	FALLBACK_CHARDET = 3  # type: DetectEncodingMode
+	FALLBACK_CHARDET_DAMMIT = 4  # type: DetectEncodingMode
+
+
+_detEncMode = DetectEncodingMode
+
+
 def empty_dir(path, overwrite=0):
 	path = clean_path_for_folder(path, overwrite)
 	if not os.path.exists(path):
@@ -511,15 +547,17 @@ def empty_dir(path, overwrite=0):
 
 
 def detect_file_encoding(
-	file_path,
+	file_path,  # type: _str_hint
 	limit=64*1024,  # 64 Kb
-	mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT
+	mode=None  # type: _t.Optional[DetectEncodingMode, int]
 ):
 	"""
 
-	:type file_path: str|unicode
+	:param file_path: the path of file to read.
 	:param limit: max amount of bytes read from the file. If non-int or 0 and less, read it entirely .
-	:param mode: one of the options from `detect_encoding_modes` submodule.
+	:param mode:
+		One of the options from ``DetectEncodingMode`` enum.
+		**FALLBACK_CHARDET_DAMMIT** if omitted.
 	:return:
 		* `str` detected encoding
 		* `float` how sure the detector is:
@@ -552,14 +590,9 @@ def detect_file_encoding(
 
 	if isinstance(mode, float):
 		mode = int(mode)
-	if not isinstance(mode, int):
-		# noinspection PyBroadException,PyPep8
-		try:
-			mode = int(mode)
-		except:
-			mode = int(bool(mode))
-	if mode < 1:
-		mode = 0
+	mode = _detEncMode.get(
+		mode, default=_detEncMode.FALLBACK_CHARDET_DAMMIT
+	)
 
 	if not (isinstance(limit, int) and limit > 0):
 		limit = None
@@ -646,27 +679,37 @@ def detect_file_encoding(
 		res_enc = detected_dammit.original_encoding  # type: str
 		return res_enc, 2.5
 
-	if mode == 0 or mode > 2:
+	if mode in {
+		_detEncMode.BUILT_IN,
+		_detEncMode.FALLBACK_CHARDET,
+		_detEncMode.FALLBACK_CHARDET_DAMMIT
+	}:
 		# try to detect using no external modules:
 		detected = _mode_no_modules(raw)
 		if detected:
 			return detected, 1.5
 		# we had no success. The next behavior depends on the mode:
-		if mode == 0:
+		if mode is _detEncMode.BUILT_IN:
 			# use the default system's encoding:
 			import locale
 			detected = locale.getpreferredencoding()  # type: str
 			return detected, 0.0
 		# continue detecting with the help of external modules:
-		mode = mode - 2  # 3 -> 1; 4 -> 2
+		mode = {
+			_detEncMode.FALLBACK_CHARDET:        _detEncMode.CHARDET,
+			_detEncMode.FALLBACK_CHARDET_DAMMIT: _detEncMode.CHARDET_DAMMIT,
+		}[mode]
 
 	try:
 		import chardet
 	except ImportError:
-		_inst('chardet')
+		try:
+			_inst('chardet')
+		except ImportError:
+			_inst('pip chardet')
 
-	if mode == 1:
-		# actually, also mode 3 if no-modules approach didn't do the job
+	if mode is _detEncMode.CHARDET:
+		# actually, also FALLBACK_CHARDET if no-modules approach didn't do the job
 		return _mode_chardet(raw)
 
 	# the 'UnicodeDammit+chardet' mode if we got here
@@ -675,7 +718,10 @@ def detect_file_encoding(
 		# noinspection PyProtectedMember
 		from bs4 import UnicodeDammit
 	except ImportError:
-		_inst('beautifulsoup4')
+		try:
+			_inst('beautifulsoup4')
+		except ImportError:
+			_inst('pip beautifulsoup4')
 
 	return _mode_unicode_dammit(raw)
 
@@ -758,38 +804,52 @@ def read_file_lines_best_enc(
 	strip_newline_char=True,
 	line_process_f=None,  # type: _t.Optional[_t.Callable[[_str_hint], _str_hint]]
 	detect_limit=64*1024,  # 64 Kb
-	detect_mode=detect_encoding_modes.FALLBACK_CHARDET_DAMMIT,
+	detect_mode=None,
 	sure_thresh=0.5
 ):
 	"""
-	A wrapper, combining `detect_file_encoding()` and `read_file_lines()` and a few different read attempts
-	into a single function, which should try read a file with an unknown encoding the best way possible.
+	A wrapper, combining `detect_file_encoding()` and `read_file_lines()` and
+	a few different read attempts into a single function, which should try read
+	a file with an unknown encoding the best way possible.
 
 	First, it detects a file encoding. Then it reads it:
-		* If detected 'sureness' is enough (higher or equal to `sure_thresh`), read the file using detected enc.
+		*
+			If detected 'sureness' is enough (higher or equal to `sure_thresh`),
+			read the file using detected enc.
 		* If not, try to read as ascii first.
-		* If still no success, with no encoding at all (using the basic `open()`, not `io.open()`).
+		*
+			If still no success, with no encoding at all (using the basic `open()`,
+			not `io.open()`).
 
-	For any argument other than `sure_thresh`, consult either `detect_file_encoding()` or `read_file_lines()`.
+	For any argument other than `sure_thresh`, consult either
+	``detect_file_encoding()`` or ``read_file_lines()``.
 
 	:return:
 		* `List of strings/unicodes` - the read file lines.
 		* `string` encoding on success, `None` if the basic `open()` was used.
 		* `float` how sure the detector is about it's encoding.
 	"""
-	encoding, enc_sure = detect_file_encoding(file_path, detect_limit, detect_mode)
+	encoding, enc_sure = detect_file_encoding(
+		file_path, limit=detect_limit, mode=detect_mode
+	)
 	not_enough_sure = bool(enc_sure < sure_thresh)
 	if not_enough_sure or not encoding:
 		try:
 			encoding = 'ascii'
-			lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+			lines = read_file_lines(
+				file_path, encoding, strip_newline_char, line_process_f
+			)
 			if not_enough_sure:
 				enc_sure = 1.0
 		except UnicodeDecodeError:
 			encoding = None
-			lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+			lines = read_file_lines(
+				file_path, encoding, strip_newline_char, line_process_f
+			)
 	else:
-		lines = read_file_lines(file_path, encoding, strip_newline_char, line_process_f)
+		lines = read_file_lines(
+			file_path, encoding, strip_newline_char, line_process_f
+		)
 
 	return lines, encoding, enc_sure
 
