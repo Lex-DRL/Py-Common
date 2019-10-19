@@ -18,5 +18,5 @@ except ImportError:
 try:
 	from itertools import izip, izip_longest
 except ImportError:
+	from itertools import zip_longest as izip_longest
 	izip = zip
-	izip_longest = zip_longest
