@@ -11,7 +11,7 @@ except ImportError:
 	pass
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_hint as _str_h
 )
 
 try:
@@ -37,7 +37,7 @@ except ImportError:
 try:
 	_h_arg_proc = _t.Union[int, psutil.Process]
 	_h_arg_proc = _t.Union[_h_arg_proc, _t.Iterable[_h_arg_proc]]
-	_h_arg_nm = _t.Union[int, float, psutil.Process, _str_hint]
+	_h_arg_nm = _t.Union[int, float, psutil.Process, _str_h]
 	_h_arg_nm = _t.Union[_h_arg_nm, _t.Iterable[_h_arg_nm]]
 	_h_l_proc = _t.List[psutil.Process]
 	_h_s_proc = _t.Set[psutil.Process]
@@ -256,8 +256,8 @@ def terminate(
 
 
 def __name_match_win(
-	name,  # type: _str_hint
-	pattern  # type: _str_hint
+	name,  # type: _str_h
+	pattern  # type: _str_h
 ):
 	name = name.replace('\\', '/')
 	pattern = pattern.replace('\\', '/')
@@ -272,7 +272,7 @@ def _pass(*args):
 
 
 def __terminate_by_proc_str(
-	proc_str_f,  # type: _t.Callable[[psutil.Process], _str_hint]
+	proc_str_f,  # type: _t.Callable[[psutil.Process], _str_h]
 	proc_filters,  # type: _h_arg_nm
 	tree=False,
 	timeout=20,  # type: _h_timeout
@@ -385,7 +385,7 @@ def terminate_by_name(
 
 
 def terminate_by_path(
-	processes,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+	processes,  # type: _t.Union[_str_h, _t.Iterable[_str_h]]
 	tree=False,
 	timeout=20,  # type: _h_timeout
 	force=False,
@@ -415,3 +415,31 @@ def terminate_by_path(
 		_get_proc_path,
 		processes, tree, timeout, force, on_match, on_terminate
 	)
+
+
+def launch_with_envs(
+	binary,  # type: _t.Union[_str_h, _t.Sequence[_str_h]]
+	envs  # type: _t.Iterable[_t.Tuple[_str_h, _t.Optional[_str_h]]]
+):
+	"""
+	Sets given variables for the current session only and starts the binary at the
+	given path.
+
+	:param binary:
+		Path to the executable with optional arguments.
+		The syntax is the same as for `subprocess.call`.
+	:param envs:
+		iterable of tuples of size with:
+			* Name of the variable
+			* value of the variable:
+				* if `None` or empty string, removes (un-sets) the var
+				*
+					if current value of the var is not set yet or set to empty string,
+					this value will be set as a new one
+				* otherwise, the value is appended with delimiter
+
+		If you want to force-reset var, you can provide two entries for the same
+		var,  the first one as `None` and the second one with the ectual new value.
+	:return:
+	"""
+	pass
