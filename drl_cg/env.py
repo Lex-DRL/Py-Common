@@ -1,20 +1,7 @@
 """
-A big package group containing all the modules related to CG-soft (2D/3D).
 """
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	# sub-packages:
-	'houdini',
-	'nuke',
-	'unity',
-
-	# modules:
-	'env',
-	'launcher',
-
-	# objects:
-)
 
 # region the regular Type-Hints stuff
 
@@ -32,3 +19,10 @@ from drl_common.py_2_3 import (
 
 # endregion
 
+import os as _os
+
+
+DRL_CG_PATH = _os.environ.get(
+	'DRL_CG_PATH',
+	'C:/1-CG'
+).replace('\\', '/').rstrip('/')
