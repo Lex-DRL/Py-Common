@@ -1,18 +1,9 @@
 """
-A big package group containing all the modules related to CG-soft (2D/3D).
+Scripts that are supposed to be launched directly by an end user, as a
+complete command-line programs doing something with Houdini.
 """
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	# sub-packages:
-	'houdini',
-	'nuke',
-	'unity',
-
-	# modules:
-
-	# objects:
-)
 
 # region the regular Type-Hints stuff
 
