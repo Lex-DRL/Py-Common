@@ -11,7 +11,9 @@ except ImportError:
 	pass
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h
+	str_hint as _str_h,
+	t_strict_unicode as _t_strict_unicode,
+	t_strict_str as _t_strict_str
 )
 
 try:
@@ -46,8 +48,9 @@ try:
 except:
 	pass
 
-from subprocess import call as _call
+import os as _os
 import fnmatch as _fm
+from subprocess import call as _call
 
 from . import platform as _pf
 from drl_common import errors as _err
@@ -417,17 +420,17 @@ def terminate_by_path(
 	)
 
 
-def launch_with_envs(
-	binary,  # type: _t.Union[_str_h, _t.Sequence[_str_h]]
-	envs  # type: _t.Iterable[_t.Tuple[_str_h, _t.Optional[_str_h]]]
+def add_envs(
+	append_in_front,  # type: bool
+	*envs  # type: _t.Tuple[_str_h, _t.Optional[_str_h]]
 ):
 	"""
-	Sets given variables for the current session only and starts the binary at the
-	given path.
+	Set a bunch of environment variables at once.
 
-	:param binary:
-		Path to the executable with optional arguments.
-		The syntax is the same as for `subprocess.call`.
+
+	:param append_in_front:
+		If `True`, new values will be appended at the beginning of a modified var.
+		Otherwise, they're appended to the end.
 	:param envs:
 		iterable of tuples of size with:
 			* Name of the variable
@@ -440,6 +443,46 @@ def launch_with_envs(
 
 		If you want to force-reset var, you can provide two entries for the same
 		var,  the first one as `None` and the second one with the ectual new value.
-	:return:
 	"""
-	pass
+	environ = _os.environ
+	sep = _os.pathsep
+
+	for env_nm, new_val in envs:
+		if env_nm is None or not (env_nm and isinstance(env_nm, _str_t)):
+			prev_val = environ[env_nm]
+		else:
+			prev_val = environ.get(env_nm)
+
+		val_is_empty = (new_val is None or new_val == '')
+		# we can't just bool() it ^ , there might be some custom class instance
+		# that inherits from string, but redefines it's bool-casting
+
+		# for any non-strings, force-convert it to string:
+		if not val_is_empty and not isinstance(new_val, _str_t):
+			# noinspection PyBroadException
+			try:
+				new_val = _t_strict_unicode(new_val)
+			except:
+				new_val = _t_strict_str(new_val)
+
+		if not prev_val:
+			if not val_is_empty:
+				environ[env_nm] = new_val
+			continue
+
+		if val_is_empty:
+			# noinspection PyBroadException
+			try:
+				environ.pop(env_nm)
+			except:
+				environ[env_nm] = ''
+			continue
+
+		# general case: the var is already set and we have a non-empty value
+		combined_val = sep.join(
+			[new_val, prev_val] if append_in_front
+			else [prev_val, new_val]
+		)
+		environ[env_nm] = combined_val
+
+	return
