@@ -1,9 +1,9 @@
 """
 The following environment variables are supported, in fallback order:
 
-	* HOU_INSTALL_PATH_<version>
-	* HOU_INSTALL_PATH
-	* HOU_INSTALLS_PATH + /<version>
+	* DRL_HOU_INSTALL_PATH_<version>
+	* DRL_HOU_INSTALL_PATH
+	* DRL_HOU_INSTALLS_PATH + /<version>
 	* DRL_CG_PATH + /Houdini/<version>
 """
 
@@ -37,7 +37,7 @@ from drl_cg.env import (
 
 HOU_INSTALLS_PATH = _clean(
 	_os.environ.get(
-		'HOU_INSTALLS_PATH',
+		'DRL_HOU_INSTALLS_PATH',
 		(_CG_PATH + '/Houdini') if _CG_PATH else ''
 	),
 	is_dir=True
@@ -50,9 +50,9 @@ def hou_install_path(hou_ver='17.5.229'):
 	Finds an existing Houdini install dir by following this fallback chain,
 	ensuring the path is actually a folder:
 
-		* 'HOU_INSTALL_PATH_<hou_ver>' env-var
-		* 'HOU_INSTALL_PATH' env-var
-		* <hou_ver> in HOU_INSTALLS_PATH
+		* 'DRL_HOU_INSTALL_PATH_<hou_ver>' env-var
+		* 'DRL_HOU_INSTALL_PATH' env-var
+		* <hou_ver> in DRL_HOU_INSTALLS_PATH
 
 	If no match is found, throws an error.
 
@@ -76,11 +76,11 @@ def hou_install_path(hou_ver='17.5.229'):
 
 	hou_ver = _clean(hou_ver)
 	if hou_ver:
-		override = try_from_env('HOU_INSTALL_PATH_' + hou_ver)
+		override = try_from_env('DRL_HOU_INSTALL_PATH_' + hou_ver)
 		if override:
 			return override
 	else:
-		override = try_from_env('HOU_INSTALL_PATH')
+		override = try_from_env('DRL_HOU_INSTALL_PATH')
 		if override:
 			return override
 
@@ -94,7 +94,7 @@ def hou_install_path(hou_ver='17.5.229'):
 		install_envs = [
 			(k.upper(), _clean(v, is_dir=True))
 			for k, v in environ.iteritems() if (
-				isinstance(k, str) and k.upper().startswith('HOU_INSTALL_PATH')
+				isinstance(k, _str_t) and k.upper().startswith('DRL_HOU_INSTALL_PATH')
 			)
 		]
 		if not install_envs:
@@ -114,8 +114,8 @@ def hou_install_path(hou_ver='17.5.229'):
 				'\t'.join(zip(*install_envs)[0])
 			)
 
-		if 'HOU_INSTALL_PATH' in proper_envs.keys():
-			return proper_envs['HOU_INSTALL_PATH']
+		if 'DRL_HOU_INSTALL_PATH' in proper_envs.keys():
+			return proper_envs['DRL_HOU_INSTALL_PATH']
 		latest_ver = sorted(proper_envs.keys())[-1]
 		return proper_envs[latest_ver]
 

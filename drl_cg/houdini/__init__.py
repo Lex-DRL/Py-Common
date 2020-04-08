@@ -20,6 +20,10 @@ from drl_common.py_2_3 import (
 
 # endregion
 
+from pprint import pprint as pp
+
+from . import env
+
 from drl_cg.launcher import with_envs as _launch
 
 
@@ -30,7 +34,6 @@ def launch(
 ):
 	"""A wrapper to start a given Houdini version"""
 
-	from . import env
 	import drl_cg.redshift.env as rs_env
 	envs = list()  # type: _t.List[_t.Tuple[_str_h, _t.Optional[_str_h]]]
 
@@ -47,4 +50,7 @@ def launch(
 
 	cmd = [hou_exe]
 	cmd.extend(exe_args)
+
+	pp(envs)
+	print(cmd)
 	_launch(cmd, False, True, *envs)

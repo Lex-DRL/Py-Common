@@ -20,6 +20,7 @@ from drl_common.py_2_3 import (
 
 # endregion
 
+import os as _os
 from subprocess import (
 	call as _call,
 	Popen as _Popen,
@@ -56,6 +57,27 @@ def with_envs(
 	:return: return-code of `subprocess.call` or 0 if `subprocess.Popen` is used
 	"""
 	_add_envs(append_in_front, *envs)
+	environ = _os.environ
+	sep = _os.pathsep
+
+	# fix houdini ENVs if any specified (they require '&'):
+	all_env_vars = (
+		(k.upper(), v)
+		for k, v in environ.iteritems() if isinstance(k, _str_t)
+	)  # type: _t.Generator[_t.Tuple[_str_h, _str_h], _t.Any, None]
+	hou_path_vars = (
+		(k, v)
+		for k, v in all_env_vars if (
+			k.startswith('HOUDINI_') and 'PATH' in k
+		)
+	)
+	for hou_env, val in hou_path_vars:
+		vals_list = filter(None, val.strip(sep).split(sep))
+		if '&' in vals_list:
+			continue
+		vals_list.append('&')
+		environ[hou_env] = sep.join(vals_list)
+
 	if _unicode_console:
 		win_unicode_console.enable()
 

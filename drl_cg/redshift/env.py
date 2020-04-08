@@ -1,7 +1,7 @@
 """
 The following environment variables are supported, in fallback order:
 
-	* REDSHIFT_INSTALL_PATH
+	* DRL_REDSHIFT_INSTALL_PATH
 
 """
 
@@ -30,7 +30,7 @@ from drl_cg.env import _clean
 
 
 INSTALL_PATH = _clean(
-	_os.environ.get('REDSHIFT_INSTALL_PATH', 'C:/ProgramData/Redshift'),
+	_os.environ.get('DRL_REDSHIFT_INSTALL_PATH', 'C:/ProgramData/Redshift'),
 	is_dir=True
 )
 BIN_PATH = (INSTALL_PATH + '/bin') if INSTALL_PATH else ''
