@@ -11,7 +11,9 @@ except ImportError:
 	pass
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_hint as _str_h,
+	t_strict_unicode as _t_strict_unicode,
+	t_strict_str as _t_strict_str
 )
 
 try:
@@ -37,7 +39,7 @@ except ImportError:
 try:
 	_h_arg_proc = _t.Union[int, psutil.Process]
 	_h_arg_proc = _t.Union[_h_arg_proc, _t.Iterable[_h_arg_proc]]
-	_h_arg_nm = _t.Union[int, float, psutil.Process, _str_hint]
+	_h_arg_nm = _t.Union[int, float, psutil.Process, _str_h]
 	_h_arg_nm = _t.Union[_h_arg_nm, _t.Iterable[_h_arg_nm]]
 	_h_l_proc = _t.List[psutil.Process]
 	_h_s_proc = _t.Set[psutil.Process]
@@ -46,8 +48,9 @@ try:
 except:
 	pass
 
-from subprocess import call as _call
+import os as _os
 import fnmatch as _fm
+from subprocess import call as _call
 
 from . import platform as _pf
 from drl_common import errors as _err
@@ -256,8 +259,8 @@ def terminate(
 
 
 def __name_match_win(
-	name,  # type: _str_hint
-	pattern  # type: _str_hint
+	name,  # type: _str_h
+	pattern  # type: _str_h
 ):
 	name = name.replace('\\', '/')
 	pattern = pattern.replace('\\', '/')
@@ -272,7 +275,7 @@ def _pass(*args):
 
 
 def __terminate_by_proc_str(
-	proc_str_f,  # type: _t.Callable[[psutil.Process], _str_hint]
+	proc_str_f,  # type: _t.Callable[[psutil.Process], _str_h]
 	proc_filters,  # type: _h_arg_nm
 	tree=False,
 	timeout=20,  # type: _h_timeout
@@ -385,7 +388,7 @@ def terminate_by_name(
 
 
 def terminate_by_path(
-	processes,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+	processes,  # type: _t.Union[_str_h, _t.Iterable[_str_h]]
 	tree=False,
 	timeout=20,  # type: _h_timeout
 	force=False,
@@ -415,3 +418,71 @@ def terminate_by_path(
 		_get_proc_path,
 		processes, tree, timeout, force, on_match, on_terminate
 	)
+
+
+def add_envs(
+	append_in_front,  # type: bool
+	*envs  # type: _t.Tuple[_str_h, _t.Optional[_str_h]]
+):
+	"""
+	Set a bunch of environment variables at once.
+
+
+	:param append_in_front:
+		If `True`, new values will be appended at the beginning of a modified var.
+		Otherwise, they're appended to the end.
+	:param envs:
+		iterable of tuples of size with:
+			* Name of the variable
+			* value of the variable:
+				* if `None` or empty string, removes (un-sets) the var
+				*
+					if current value of the var is not set yet or set to empty string,
+					this value will be set as a new one
+				* otherwise, the value is appended with delimiter
+
+		If you want to force-reset var, you can provide two entries for the same
+		var,  the first one as `None` and the second one with the ectual new value.
+	"""
+	environ = _os.environ
+	sep = _os.pathsep
+
+	for env_nm, new_val in envs:
+		if env_nm is None or not (env_nm and isinstance(env_nm, _str_t)):
+			prev_val = environ[env_nm]
+		else:
+			prev_val = environ.get(env_nm)
+
+		val_is_empty = (new_val is None or new_val == '')
+		# we can't just bool() it ^ , there might be some custom class instance
+		# that inherits from string, but redefines it's bool-casting
+
+		# for any non-strings, force-convert it to string:
+		if not val_is_empty and not isinstance(new_val, _str_t):
+			# noinspection PyBroadException
+			try:
+				new_val = _t_strict_unicode(new_val)
+			except:
+				new_val = _t_strict_str(new_val)
+
+		if not prev_val:
+			if not val_is_empty:
+				environ[env_nm] = new_val
+			continue
+
+		if val_is_empty:
+			# noinspection PyBroadException
+			try:
+				environ.pop(env_nm)
+			except:
+				environ[env_nm] = ''
+			continue
+
+		# general case: the var is already set and we have a non-empty value
+		combined_val = sep.join(
+			[new_val, prev_val] if append_in_front
+			else [prev_val, new_val]
+		)
+		environ[env_nm] = combined_val
+
+	return

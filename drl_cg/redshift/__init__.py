@@ -1,6 +1,5 @@
 """
-Scripts that are supposed to be launched directly by an end user, as a
-complete command-line programs doing something with Nuke.
+Tools related to RedShift.
 """
 
 __author__ = 'Lex Darlog (DRL)'

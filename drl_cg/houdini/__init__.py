@@ -20,3 +20,37 @@ from drl_common.py_2_3 import (
 
 # endregion
 
+from pprint import pprint as pp
+
+from . import env
+
+from drl_cg.launcher import with_envs as _launch
+
+
+def launch(
+	hou_ver='17.5.229',
+	redshift=False,
+	*exe_args
+):
+	"""A wrapper to start a given Houdini version"""
+
+	import drl_cg.redshift.env as rs_env
+	envs = list()  # type: _t.List[_t.Tuple[_str_h, _t.Optional[_str_h]]]
+
+	hou_install_path = env.hou_install_path(hou_ver)
+	hou_exe = hou_install_path + env.EXE_SUBPATH
+
+	if redshift and rs_env.INSTALL_PATH:
+		envs.extend([
+			('HOUDINI_DSO_ERROR', None),
+			('HOUDINI_DSO_ERROR', 2),
+			('PATH', rs_env.BIN_PATH),
+			('HOUDINI_PATH', rs_env.hou_plugin_path(hou_ver))
+		])
+
+	cmd = [hou_exe]
+	cmd.extend(exe_args)
+
+	pp(envs)
+	print(cmd)
+	_launch(cmd, False, True, *envs)

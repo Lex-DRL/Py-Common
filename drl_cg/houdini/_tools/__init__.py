@@ -1,6 +1,6 @@
 """
 Scripts that are supposed to be launched directly by an end user, as a
-complete command-line programs doing something with Nuke.
+complete command-line programs doing something with Houdini.
 """
 
 __author__ = 'Lex Darlog (DRL)'
