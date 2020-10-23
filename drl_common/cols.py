@@ -5,7 +5,7 @@ wrappers of some sort.
 
 __author__ = 'Lex Darlog (DRL)'
 __all__ = (
-	'DefaultTuple', 'DefaultList', 'Container'
+	'DefaultTuple', 'DefaultList', 'Container', 'Dummy'
 )
 
 try:
@@ -331,3 +331,17 @@ class Container(_BaseContainer):
 		if res_values:
 			res_values = pre + res_values + post
 		return '{0}({1})'.format(self.__class__.__name__, res_values)
+
+
+class Dummy(object):
+	"""
+	A simplest class with no attributes at all.
+	It's designed to act as a temporary container for some data.
+	I.e., it should be used like:
+
+	>>> tmp = Dummy()
+	>>> tmp.x = 1
+	>>> tmp.y = 2
+	"""
+
+	pass
