@@ -17,6 +17,15 @@ try:
 except ImportError:
 	pass
 
+try:
+	from itertools import (
+		izip as _izip,
+		izip_longest as _izip_longest
+	)
+except ImportError:
+	from itertools import zip_longest as _izip_longest
+	_izip = zip
+
 # only for backward compatibility in legacy code:
 from .cols import DefaultTuple, DefaultList, Container
 Dummy = Container
@@ -228,3 +237,19 @@ def flatten_gen(possibly_iterable, bruteforce=True, keep_strings=True):
 	for el in possibly_iterable:
 		for sub in flatten_gen(el):
 			yield sub
+
+
+def group_by_n_gen(
+	iterable, n, do_fill=True, fillvalue=None
+):  # type: (_t.Iterable[T1], int, bool, T2) -> _t.Iterator[tuple[_t.Union[T1, T2], ...]]
+	"""
+	Group items in the iterable by n in each tuple.
+	I.e.:
+
+	range(9), n=3 -> [(0, 1, 2), (3, 4, 5), (6, 7, 8)]
+	"""
+	assert (isinstance(n, int) and n > 0), "Wrong number of grouped items: {}".format(n)
+	args = [iter(iterable)] * n
+	if do_fill:
+		return _izip_longest(*args, fillvalue=fillvalue)
+	return _izip(*args)
