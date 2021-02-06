@@ -15,7 +15,7 @@ except ImportError:
 
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h
+	str_h as _str_h
 )
 
 # endregion
@@ -39,7 +39,7 @@ def with_envs(
 	executable,  # type: _t.Union[_str_h, _t.Sequence[_str_h]]
 	keep_console_window,  # type: bool
 	append_in_front,  # type: bool
-	*envs  # type: _t.Tuple[_str_h, _t.Optional[_str_h]]
+	*envs  # type: _t.Tuple[_str_h, _t.Any]
 ):
 	"""
 	Sets given environment variables for the current session only and

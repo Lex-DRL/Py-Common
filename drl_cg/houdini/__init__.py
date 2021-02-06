@@ -15,7 +15,7 @@ except ImportError:
 
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h
+	str_h as _str_h
 )
 
 # endregion
@@ -24,7 +24,7 @@ from pprint import pprint as pp
 
 from . import env
 
-from drl_cg.launcher import with_envs as _launch
+from .launcher import with_envs as _launch
 
 
 def launch(
@@ -35,7 +35,7 @@ def launch(
 	"""A wrapper to start a given Houdini version"""
 
 	import drl_cg.redshift.env as rs_env
-	envs = list()  # type: _t.List[_t.Tuple[_str_h, _t.Optional[_str_h]]]
+	envs = list()  # type: _t.List[_t.Tuple[_str_h, _t.Any]]
 
 	hou_install_path = env.hou_install_path(hou_ver)
 	hou_exe = hou_install_path + env.EXE_SUBPATH

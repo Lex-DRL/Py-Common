@@ -2,7 +2,7 @@
 
 __author__ = 'Lex Darlog (DRL)'
 __all__ = (
-	'str_t', 'str_hint',
+	'str_t', 'str_hint', 'str_h',
 	't_strict_str', 't_strict_unicode',
 )
 
@@ -25,34 +25,24 @@ except:
 	t_strict_str = bytes
 
 
-str_t = [str]
 # noinspection PyBroadException,PyPep8
 try:
-	if unicode not in str_t:
-		str_t = [str, unicode]
+	# noinspection PyUnresolvedReferences
+	str_t = (str, unicode)
 except:
-	pass
-# noinspection PyBroadException,PyPep8
-try:
-	if bytes not in str_t:
-		str_t = [bytes, str]
-except:
-	pass
-str_t = tuple(str_t)  # type: __tpl[__tp[t_strict_str], __tp[t_strict_unicode]]
+	str_t = (bytes, str)
 
 
 # noinspection PyBroadException,PyPep8
 try:
+	# noinspection PyUnresolvedReferences
 	str_hint = __t.Union[str, unicode]
 except:
 	# noinspection PyBroadException,PyPep8
 	try:
-		str_hint = __t.Union[str, bytes]
+		# noinspection PyUnresolvedReferences
+		str_hint = __t.Union[bytes, str]
 	except:
 		str_hint = str
 
-# noinspection PyBroadException,PyPep8
-# try:
-# 	str_hint = typing.Union[str_hint, typing.AnyStr]
-# except:
-# 	pass
+str_h = str_hint
