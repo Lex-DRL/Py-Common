@@ -513,3 +513,24 @@ def add_envs(
 		environ[env_nm] = combined_val
 
 	return
+
+
+def start(
+	executable,  # type: _t.Union[_str_h, _t.Sequence[_str_h]]
+	keep_console_window=False,  # type: bool
+	append_env_in_front=False,  # type: bool
+	*env_args,  # type: _t.Tuple[_str_h, _t.Optional[_str_h]]
+	**env_kwargs
+):
+	"""
+	The function starting a process with (optionally):
+		* some command-line arguments
+		* setting environment variables (see `add_envs` function).
+	"""
+	add_envs(append_env_in_front, *env_args, **env_kwargs)
+
+	if keep_console_window:
+		return _call(executable)
+
+	_Popen(executable)
+	return 0
