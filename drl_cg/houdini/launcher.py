@@ -39,7 +39,7 @@ def with_envs(
 	executable,  # type: _t.Union[_str_h, _t.Sequence[_str_h]]
 	keep_console_window,  # type: bool
 	append_in_front,  # type: bool
-	*envs  # type: _t.Tuple[_str_h, _t.Optional[_str_h]]
+	*envs  # type: _t.Tuple[_str_h, _t.Any]
 ):
 	"""
 	Sets given environment variables for the current session only and

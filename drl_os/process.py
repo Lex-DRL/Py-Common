@@ -11,7 +11,7 @@ except ImportError:
 	pass
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h,
+	str_h as _str_h,
 	t_strict_unicode as _t_strict_unicode,
 	t_strict_str as _t_strict_str
 )
@@ -50,10 +50,24 @@ except:
 
 import os as _os
 import fnmatch as _fm
-from subprocess import call as _call
+from subprocess import (
+	call as _call,
+	Popen as _Popen,
+)
 
 from . import platform as _pf
 from drl_common import errors as _err
+
+
+def __to_str(val):
+	if val is None:
+		return ""
+	if isinstance(val, _str_t):
+		return val
+	try:
+		return str(val)
+	except:
+		return _t_strict_unicode(val)
 
 
 def __terminate_windows(
@@ -422,7 +436,8 @@ def terminate_by_path(
 
 def add_envs(
 	append_in_front,  # type: bool
-	*envs  # type: _t.Tuple[_str_h, _t.Optional[_str_h]]
+	*env_args,  # type: _t.Tuple[_str_h, _t.Any]
+	**env_kwargs
 ):
 	"""
 	Set a bunch of environment variables at once.
@@ -431,8 +446,8 @@ def add_envs(
 	:param append_in_front:
 		If `True`, new values will be appended at the beginning of a modified var.
 		Otherwise, they're appended to the end.
-	:param envs:
-		iterable of tuples of size with:
+	:param env_args:
+		Extra env-vars as size-2 tuples with:
 			* Name of the variable
 			* value of the variable:
 				* if `None` or empty string, removes (un-sets) the var
@@ -443,27 +458,40 @@ def add_envs(
 
 		If you want to force-reset var, you can provide two entries for the same
 		var,  the first one as `None` and the second one with the ectual new value.
+	:param env_kwargs:
+		Similarly, some more env-vars.
+
+		WARNING: since items order is undefined for dicts, this should not be used
+		for re-setting already set env-vars. If they're present in system, the var
+		value will be appended.
+
+		The kwargs should only be used in very simple cases, where the var is
+		definitely undefined or you intend to add the arg's value to it (e.g., PATH).
 	"""
+	if not (env_args or env_kwargs):
+		return
+
 	environ = _os.environ
 	sep = _os.pathsep
 
-	for env_nm, new_val in envs:
+	env_items = list(env_args)
+	env_items.extend(
+		(k, v) for k, v in env_kwargs.iteritems()
+	)
+
+	for env_nm, new_val in env_items:
 		if env_nm is None or not (env_nm and isinstance(env_nm, _str_t)):
+			# force-throw an error of a wrong var name:
 			prev_val = environ[env_nm]
 		else:
+			# get null if value isn't set yet:
 			prev_val = environ.get(env_nm)
 
-		val_is_empty = (new_val is None or new_val == '')
+		# for any non-strings, force-convert it to string:
+		new_val = __to_str(new_val)
+		val_is_empty = (new_val == '')
 		# we can't just bool() it ^ , there might be some custom class instance
 		# that inherits from string, but redefines it's bool-casting
-
-		# for any non-strings, force-convert it to string:
-		if not val_is_empty and not isinstance(new_val, _str_t):
-			# noinspection PyBroadException
-			try:
-				new_val = _t_strict_unicode(new_val)
-			except:
-				new_val = _t_strict_str(new_val)
 
 		if not prev_val:
 			if not val_is_empty:
@@ -480,8 +508,7 @@ def add_envs(
 
 		# general case: the var is already set and we have a non-empty value
 		combined_val = sep.join(
-			[new_val, prev_val] if append_in_front
-			else [prev_val, new_val]
+			[new_val, prev_val] if append_in_front else [prev_val, new_val]
 		)
 		environ[env_nm] = combined_val
 

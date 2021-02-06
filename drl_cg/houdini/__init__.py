@@ -35,7 +35,7 @@ def launch(
 	"""A wrapper to start a given Houdini version"""
 
 	import drl_cg.redshift.env as rs_env
-	envs = list()  # type: _t.List[_t.Tuple[_str_h, _t.Optional[_str_h]]]
+	envs = list()  # type: _t.List[_t.Tuple[_str_h, _t.Any]]
 
 	hou_install_path = env.hou_install_path(hou_ver)
 	hou_exe = hou_install_path + env.EXE_SUBPATH
