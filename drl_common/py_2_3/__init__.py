@@ -11,7 +11,7 @@ try:
 	import typing
 	py3 = True
 except ImportError:
-	import __empty_module as typing
+	import __typing_fallback as typing
 	py2 = True
 	py3 = False
 
@@ -20,3 +20,8 @@ try:
 except ImportError:
 	from itertools import zip_longest as izip_longest
 	izip = zip
+
+try:
+	xrange = xrange
+except NameError:
+	xrange = range
