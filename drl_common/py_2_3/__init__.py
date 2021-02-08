@@ -25,3 +25,18 @@ try:
 	xrange = xrange
 except NameError:
 	xrange = range
+
+try:
+	reload = reload
+except:
+	from importlib import reload
+
+
+if py2:
+	from .__monkey_patchers_py2 import _all as __patchers
+if py3:
+	from .__monkey_patchers_py3 import _all as __patchers
+if py2 or py3:
+	for patcher in __patchers:
+		patcher()
+	del __patchers
