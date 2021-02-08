@@ -1,4 +1,4 @@
-from py_2_3 import (
+from .py_2_3 import (
 	typing as _t,
 	str_t, str_hint, izip
 )

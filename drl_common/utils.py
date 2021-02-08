@@ -114,11 +114,18 @@ def to_ranges_generator(iterable):
 	:return: <generator object>
 	"""
 	import itertools
+
+	def key_f(x):
+		"""
+		Returns how much the current value is offset from it's index.
+		Each range will have the same offset, so they'll end up in the same group.
+		"""
+		itm_id, val = x
+		return val - itm_id
+
 	for key, range_group in itertools.groupby(
 		enumerate(iterable),  # pairs of item's id in the list and it's actual value
-		lambda (itm_id, val): val - itm_id
-		# ^ How much the current value is offset from it's index.
-		# Each range will have the same offset, so they'll end up in the same group.
+		key_f
 	):
 		range_group = list(range_group)
 		yield (
