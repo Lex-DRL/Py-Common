@@ -289,7 +289,7 @@ class Container(_BaseContainer):
 			(
 				check_f(k, class_children, seen, seen_add),
 				v
-			) for k, v in kwargs.iteritems()
+			) for k, v in kwargs.items()
 		)
 
 	def __init__(self, **children):
@@ -298,25 +298,25 @@ class Container(_BaseContainer):
 			dict(self.__proper_items(children))
 		)
 
-	def iteritems(self):
+	def items(self):
 		class_children = self.__class__._class_children()
 		check_f = self._check_no_clash_base
 		return (
 			(check_f(k, class_children), v)
-			for k, v in self.__dict__.iteritems()
+			for k, v in self.__dict__.items()
 		)
 
-	def items(self):
+	def items_list(self):
 		"""
 		List of key-value tuple pairs of children.
 		"""
-		return sorted(self.iteritems())
+		return sorted(self.items())
 
 	def as_dict(self):
 		"""
 		A dictionary of children. You're safe to edit it.
 		"""
-		return dict(self.iteritems())
+		return dict(self.items())
 
 	def update(self, **children):
 		self.__dict__.update(
@@ -324,7 +324,7 @@ class Container(_BaseContainer):
 		)
 
 	def __repr__(self):
-		res_values = self.items()
+		res_values = self.items_list()
 		num = len(res_values)
 		pre, separator, post = '', ', ', ''
 		if (

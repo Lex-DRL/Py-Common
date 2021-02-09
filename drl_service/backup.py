@@ -20,7 +20,7 @@ import errno as _errno
 from drl_os import process as _prc
 from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
 
-_errno_all = frozenset(_errno.errorcode.itervalues())
+_errno_all = frozenset(_errno.errorcode.values())
 
 
 class BackupErrorType(__EnumDefault):

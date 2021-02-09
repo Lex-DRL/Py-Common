@@ -185,7 +185,7 @@ def group_items(items, key_f=None):
 
 	return [  # list of tuples:
 		tuple(v) for k, v in sorted(
-			grouped.iteritems(),
+			grouped.items(),
 			key=lambda x: x[0]
 		)
 	]

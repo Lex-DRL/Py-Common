@@ -476,7 +476,7 @@ def add_envs(
 
 	env_items = list(env_args)
 	env_items.extend(
-		(k, v) for k, v in env_kwargs.iteritems()
+		(k, v) for k, v in env_kwargs.items()
 	)
 
 	for env_nm, new_val in env_items:

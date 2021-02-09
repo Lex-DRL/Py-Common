@@ -93,7 +93,7 @@ def hou_install_path(hou_ver='17.5.229'):
 		# try to find the latest version specified with env:
 		install_envs = [
 			(k.upper(), _clean(v, is_dir=True))
-			for k, v in environ.iteritems() if (
+			for k, v in environ.items() if (
 				isinstance(k, _str_t) and k.upper().startswith('DRL_HOU_INSTALL_PATH')
 			)
 		]
