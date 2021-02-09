@@ -20,6 +20,7 @@ from drl_common.py_2_3 import (
 	t_strict_unicode as _unicode,
 	izip as _izip,
 	xrange as _xrange,
+	raw_input as _input,
 )
 
 
@@ -1209,4 +1210,4 @@ if __name__ == '__main__':
 	for p in sys.argv[1:]:
 		parse(p, True)
 	print('\nComplete')
-	raw_input()
+	_input()

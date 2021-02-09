@@ -5,6 +5,7 @@ import sys
 from drl_common.py_2_3 import (
 	str_t as _str_t,
 	str_h as _str_h,
+	raw_input as _input,
 )
 from drl_cg.nuke import launch_nk_process as _launch_nk
 from drl_cg.nuke.processor import errors as _err
@@ -51,4 +52,4 @@ for f in files_to_process:
 	)
 
 print(u'Done.\nPress <Enter> to finish...')
-raw_input()
+_input()

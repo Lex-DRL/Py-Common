@@ -8,6 +8,10 @@ require:
 
 #region initialisation
 
+from drl_common.py_2_3 import (
+	raw_input as _input,
+)
+
 import sys, os, re, glob, subprocess, time, shutil, socket, json
 import OpenImageIO.OpenImageIO as oiio
 # from ctypes import windll, create_unicode_buffer
@@ -213,7 +217,7 @@ if __name__ == '__main__':
         except:
             version = 'unknown'
 
-        args = zip(theGlob, xrange(numFrames),
+        args = zip(theGlob, range(numFrames),
                    [temporaryDirectory] * numFrames,
                    [numFrames] * numFrames,
                    [settings['res']] * numFrames,
@@ -308,4 +312,4 @@ if __name__ == '__main__':
 
     else:
         print("Drop any frame of sequence on SequenceToMovie shortcut")
-        raw_input()
+        _input()

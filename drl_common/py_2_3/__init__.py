@@ -40,3 +40,8 @@ if py2 or py3:
 	for patcher in __patchers:
 		patcher()
 	del __patchers
+
+try:
+	raw_input = raw_input
+except:
+	raw_input = input

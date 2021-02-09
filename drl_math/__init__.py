@@ -21,6 +21,9 @@ except ImportError:
 	pass
 
 from drl_common.cols import Dummy as _Dummy
+from drl_common.py_2_3 import (
+	xrange as _xrange,
+)
 
 
 class GeometricProgression(object):
@@ -104,7 +107,7 @@ class GeometricProgression(object):
 		"""Generator for the sequence."""
 		n, first, ratio = self.n, self.start, self.ratio
 		if first == 0:
-			return (0 for i in xrange(n))
+			return (0 for i in _xrange(n))
 
 		buf = _Dummy()
 		# The buffer actually stores the next value, so it's one step in advance.
@@ -118,7 +121,7 @@ class GeometricProgression(object):
 
 		# made via generator expression - since it leads to more efficient
 		# list/tuple initialisation due to automatic detection of items count:
-		return (next_item() for i in xrange(n))
+		return (next_item() for i in _xrange(n))
 
 	@property
 	def sequence(self):
