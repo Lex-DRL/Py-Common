@@ -1142,7 +1142,7 @@ def parse_file(file_path, print_path=False):
 		return
 
 	if print_path:
-		print 'Reading: ' + file_path
+		print('Reading: ' + file_path)
 
 	# file_path = r'E:\1-Projects\SFM\_Tools\dx-shader-decompiler\ME-face-0.ps'
 
@@ -1156,7 +1156,7 @@ def parse_file(file_path, print_path=False):
 		return
 
 	if print_path:
-		print '\tParsing... ' + file_path
+		print('\tParsing... ' + file_path)
 	shader_ranges = _detect_shader_ranges(lines, ext)
 	hlsl_shaders = []  # type: List[List[str]]
 	for pre_c_r, code_r, post_c_r in shader_ranges:  # type: (Optional[Range], CodeBlock, Optional[Range])
@@ -1198,7 +1198,7 @@ def parse(path, print_paths=False):
 	files = [_os.path.join(path, f) for f in _os.listdir(path)]
 	files = filter(is_proper_input_file, files)
 	if print_paths and files:
-		print '\nFiles in folder: ' + path
+		print('\nFiles in folder: ' + path)
 	for f in files:
 		parse_file(f, print_paths)
 	return
@@ -1208,5 +1208,5 @@ if __name__ == '__main__':
 	import sys
 	for p in sys.argv[1:]:
 		parse(p, True)
-	print '\nComplete'
+	print('\nComplete')
 	raw_input()

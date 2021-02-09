@@ -50,5 +50,5 @@ for f in files_to_process:
 		f, out, nk_script=nk_file, auto_to_exr=False, post_wait=0.0
 	)
 
-print u'Done.\nPress <Enter> to finish...'
+print(u'Done.\nPress <Enter> to finish...')
 raw_input()

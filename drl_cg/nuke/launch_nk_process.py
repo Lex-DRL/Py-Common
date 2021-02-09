@@ -41,7 +41,7 @@ def launch_nuke_with_command(cmd='', home_override_env='DRL_NUKE_HOME'):
 				output = _unicode(output)
 		output = output.strip()
 		if output:
-			print output
+			print(output)
 
 	proc.readyRead.connect(to_output)
 	proc.start(cmd)
@@ -89,7 +89,7 @@ def process(
 		def wait_for(sec):
 			if not isinstance(sec, (int, float)) or sec <= 0:
 				return
-			print 'Waiting for {0} seconds...'.format(sec)
+			print('Waiting for {0} seconds...'.format(sec))
 			time.sleep(sec)
 		# src_tex = r'E:\1-Projects\5-ShaderFX\sources\Trash\Trash.exr'
 
@@ -115,11 +115,11 @@ def process(
 			auto_to_exr=auto_to_exr
 		)
 
-		print "Launch Nuke with command: " + cmd
+		print("Launch Nuke with command: " + cmd)
 		launch_nuke_with_command(cmd, home_override_env=home_override_env)
 
 		wait_for(post_wait)
 		if remove_src_tex:
-			print "Removing raw rendered texture: " + src_tex
+			print("Removing raw rendered texture: " + src_tex)
 			os.remove(src_tex)
-		print "---- Nuke processing completed ----"
+		print("---- Nuke processing completed ----")

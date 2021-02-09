@@ -23,7 +23,7 @@ class drl_widget(QWidget):
 
 
   def action(self):
-    print 'action'
+    print('action')
 
   def textChange(self, text):
     self.drl_lbl.setText(u'Текст: %s' % text)

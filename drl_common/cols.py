@@ -128,10 +128,10 @@ class _BaseContainer(Dummy):
 			* ``False`` - if not.
 		"""
 
-		# print 'base _container_proper_name({}, {}, {}, {})'.format(
+		# print('base _container_proper_name({}, {}, {}, {})'.format(
 		# 	repr(name), repr(class_reserved_children),
 		# 	repr(seen_set), repr(seen_set_add)
-		# )
+		# ))
 		return (
 			name
 			and isinstance(name, _str_t)
@@ -166,10 +166,10 @@ class _BaseContainer(Dummy):
 		:return: The passed name forcefully turned to a string.
 		"""
 
-		# print 'base _container_check_name({}, {}, {}, {})'.format(
+		# print('base _container_check_name({}, {}, {}, {})'.format(
 		# 	repr(name), repr(class_reserved_children),
 		# 	repr(seen_set), repr(seen_set_add)
-		# )
+		# ))
 		if not isinstance(name, _str_t):
 			raise TypeError(
 				"This can't be the name of the {cls_nm}'s member: {itm_nm}".format(
@@ -227,9 +227,9 @@ class _BaseContainer(Dummy):
 		class_reserved_children,  # type: _t.Set[str]
 	):
 
-		# print "base._check_no_clash_base({}, {}, {})".format(
+		# print("base._check_no_clash_base({}, {}, {})".format(
 		# 	repr(name), repr(class_reserved_children), repr(instance)
-		# )
+		# ))
 		if not (name and isinstance(name, str)):
 			raise ValueError(
 				"{cls_nm}'s member can't have this name: {item_nm}".format(
