@@ -5,12 +5,18 @@ __author__ = 'Lex Darlog (DRL)'
 
 import os
 
-import drl_common.errors as err
-from drl_common import filesystem as fs
+from drl_common import (
+	errors as err,
+	filesystem as fs,
+)
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 from .processor import errors as _err
 
 
-str_types = (str, unicode)
+str_types = _str_t
 
 env_nuke_path = 'NUKE_LOCATION'
 env_nuke_exe = 'NUKE_EXE_NAME'
@@ -96,7 +102,7 @@ def get_py_script_path(full_path='', py_dir='', py_filename=''):
 def get_src_tex(src_tex):
 	if not src_tex:
 		raise _err.NoPathError('source texture')
-	if isinstance(src_tex, (str, unicode)):
+	if isinstance(src_tex, _str_t):
 		fs.error_check.file_readable(src_tex)
 		return src_tex.replace('\\', '/')
 	fs.error_check.file_readable(src_tex)

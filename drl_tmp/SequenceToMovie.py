@@ -8,6 +8,10 @@ require:
 
 #region initialisation
 
+from drl_common.py_2_3 import (
+	raw_input as _input,
+)
+
 import sys, os, re, glob, subprocess, time, shutil, socket, json
 import OpenImageIO.OpenImageIO as oiio
 # from ctypes import windll, create_unicode_buffer
@@ -213,7 +217,7 @@ if __name__ == '__main__':
         except:
             version = 'unknown'
 
-        args = zip(theGlob, xrange(numFrames),
+        args = zip(theGlob, range(numFrames),
                    [temporaryDirectory] * numFrames,
                    [numFrames] * numFrames,
                    [settings['res']] * numFrames,
@@ -234,7 +238,7 @@ if __name__ == '__main__':
         while result._index != numFrames:
             sys.stdout.write('conversion '+str(int(100 * (float(result._index) / float(numFrames))))+'%\n')
             sys.stdout.flush()
-            #print int(100 * (float(result._index) / float(numFrames))), '%'
+            #print(int(100 * (float(result._index) / float(numFrames))), '%')
             time.sleep(1)
 
         if settings['slate']:
@@ -271,9 +275,9 @@ if __name__ == '__main__':
             tempFrame = temporaryDirectory + "temp.0000.jpg"
             img.write(tempFrame)
         sys.stdout.write("conversion 100%\n")
-        #print "100 %"
+        #print("100 %")
         #sys.stdout.write("time:"+str(time.time() - t)+"\n")
-        print "time:", time.time() - t
+        print("time:", time.time() - t)
         dailisDir = ""
 
         inFile = temporaryDirectory + 'temp.%4d.jpg'
@@ -307,5 +311,5 @@ if __name__ == '__main__':
                 subprocess.Popen('explorer "'+dailisDir+'"')
 
     else:
-        print "Drop any frame of sequence on SequenceToMovie shortcut"
-        raw_input()
+        print("Drop any frame of sequence on SequenceToMovie shortcut")
+        _input()

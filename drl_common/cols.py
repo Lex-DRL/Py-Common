@@ -17,7 +17,7 @@ except ImportError:
 
 from .py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_h as _str_h,
 )
 
 import string as __string
@@ -107,9 +107,9 @@ class _BaseContainer(Dummy):
 
 	@staticmethod
 	def _proper_name_base(
-		name,  # type: _str_hint
-		class_reserved_children,  # type: _t.Set[_str_hint]
-		seen_set,  # type: _t.Set[_str_hint]
+		name,  # type: _str_h
+		class_reserved_children,  # type: _t.Set[_str_h]
+		seen_set,  # type: _t.Set[_str_h]
 		seen_set_add,  # type: _t.Callable[[str], None]
 	):
 		"""
@@ -128,10 +128,10 @@ class _BaseContainer(Dummy):
 			* ``False`` - if not.
 		"""
 
-		# print 'base _container_proper_name({}, {}, {}, {})'.format(
+		# print('base _container_proper_name({}, {}, {}, {})'.format(
 		# 	repr(name), repr(class_reserved_children),
 		# 	repr(seen_set), repr(seen_set_add)
-		# )
+		# ))
 		return (
 			name
 			and isinstance(name, _str_t)
@@ -146,7 +146,7 @@ class _BaseContainer(Dummy):
 	@classmethod
 	def _check_name_base(
 		cls,
-		name,  # type: _str_hint
+		name,  # type: _str_h
 		class_reserved_children,  # type: _t.Set[str]
 		seen_set,  # type: _t.Set[str]
 		seen_set_add,  # type: _t.Callable[[str], None]
@@ -166,10 +166,10 @@ class _BaseContainer(Dummy):
 		:return: The passed name forcefully turned to a string.
 		"""
 
-		# print 'base _container_check_name({}, {}, {}, {})'.format(
+		# print('base _container_check_name({}, {}, {}, {})'.format(
 		# 	repr(name), repr(class_reserved_children),
 		# 	repr(seen_set), repr(seen_set_add)
-		# )
+		# ))
 		if not isinstance(name, _str_t):
 			raise TypeError(
 				"This can't be the name of the {cls_nm}'s member: {itm_nm}".format(
@@ -223,13 +223,13 @@ class _BaseContainer(Dummy):
 
 	def _check_no_clash_base(
 		self,
-		name,  # type: _str_hint
+		name,  # type: _str_h
 		class_reserved_children,  # type: _t.Set[str]
 	):
 
-		# print "base._check_no_clash_base({}, {}, {})".format(
+		# print("base._check_no_clash_base({}, {}, {})".format(
 		# 	repr(name), repr(class_reserved_children), repr(instance)
-		# )
+		# ))
 		if not (name and isinstance(name, str)):
 			raise ValueError(
 				"{cls_nm}'s member can't have this name: {item_nm}".format(
@@ -289,7 +289,7 @@ class Container(_BaseContainer):
 			(
 				check_f(k, class_children, seen, seen_add),
 				v
-			) for k, v in kwargs.iteritems()
+			) for k, v in kwargs.items()
 		)
 
 	def __init__(self, **children):
@@ -298,25 +298,25 @@ class Container(_BaseContainer):
 			dict(self.__proper_items(children))
 		)
 
-	def iteritems(self):
+	def items(self):
 		class_children = self.__class__._class_children()
 		check_f = self._check_no_clash_base
 		return (
 			(check_f(k, class_children), v)
-			for k, v in self.__dict__.iteritems()
+			for k, v in self.__dict__.items()
 		)
 
-	def items(self):
+	def items_list(self):
 		"""
 		List of key-value tuple pairs of children.
 		"""
-		return sorted(self.iteritems())
+		return sorted(self.items())
 
 	def as_dict(self):
 		"""
 		A dictionary of children. You're safe to edit it.
 		"""
-		return dict(self.iteritems())
+		return dict(self.items())
 
 	def update(self, **children):
 		self.__dict__.update(
@@ -324,7 +324,7 @@ class Container(_BaseContainer):
 		)
 
 	def __repr__(self):
-		res_values = self.items()
+		res_values = self.items_list()
 		num = len(res_values)
 		pre, separator, post = '', ', ', ''
 		if (

@@ -1,4 +1,4 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 try:
 	# support type hints in Python 3:
@@ -6,10 +6,11 @@ try:
 except ImportError:
 	pass
 
-try:
-	_uni = unicode  # Python 2
-except NameError:
-	_uni = str  # fix for Python 3
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	t_strict_unicode as _uni,
+)
 
 import errno
 from os import strerror as _err_str

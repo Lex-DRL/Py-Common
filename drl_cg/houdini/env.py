@@ -20,7 +20,7 @@ except ImportError:
 
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h
+	str_hint as _str_h,
 )
 
 # endregion
@@ -31,7 +31,7 @@ import errno as _errno
 
 from drl_cg.env import (
 	_clean,
-	DRL_CG_PATH as _CG_PATH
+	DRL_CG_PATH as _CG_PATH,
 )
 
 
@@ -93,7 +93,7 @@ def hou_install_path(hou_ver='17.5.229'):
 		# try to find the latest version specified with env:
 		install_envs = [
 			(k.upper(), _clean(v, is_dir=True))
-			for k, v in environ.iteritems() if (
+			for k, v in environ.items() if (
 				isinstance(k, _str_t) and k.upper().startswith('DRL_HOU_INSTALL_PATH')
 			)
 		]

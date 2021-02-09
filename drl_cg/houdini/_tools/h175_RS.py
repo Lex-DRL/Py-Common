@@ -4,6 +4,7 @@ Launch Houdini 17.5 with RedShift
 
 __author__ = 'Lex Darlog (DRL)'
 
+from drl_common.py_2_3 import reload
 from drl_cg import houdini
 import sys
 

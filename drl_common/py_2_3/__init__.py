@@ -1,4 +1,4 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 from .__str_typing import *
 
@@ -25,3 +25,23 @@ try:
 	xrange = xrange
 except NameError:
 	xrange = range
+
+try:
+	reload = reload
+except:
+	from importlib import reload
+
+
+if py2:
+	from .__monkey_patchers_py2 import _all as __patchers
+if py3:
+	from .__monkey_patchers_py3 import _all as __patchers
+if py2 or py3:
+	for patcher in __patchers:
+		patcher()
+	del __patchers
+
+try:
+	raw_input = raw_input
+except:
+	raw_input = input

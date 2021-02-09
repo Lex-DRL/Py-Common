@@ -14,12 +14,12 @@ except ImportError:
 
 from ..__str_typing import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_h as _str_h,
 )
 
 
 def __pip_inst(
-	module_names,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+	module_names,  # type: _t.Union[_str_h, _t.Iterable[_str_h]]
 	upgrade=True,
 	force_reinstall=False
 ):
@@ -146,7 +146,7 @@ class EnumDefault(IntEnum):
 
 		# noinspection PyBroadException
 		try:
-			_h_enum_key = _t.Union[_str_hint, EnumDefault, int]
+			_h_enum_key = _t.Union[_str_h, EnumDefault, int]
 		except:
 			pass
 		# print ('{} initialization'.format(cls))
@@ -212,7 +212,7 @@ class EnumDefault(IntEnum):
 		tmp_set.add(member)
 		cls.__all_members = frozenset(tmp_set)  # type: _t.FrozenSet[EnumDefault]
 
-		nm = member.name  # type: _str_hint
+		nm = member.name  # type: _str_h
 		int_val = member.value  # type: int
 		keys = {member, nm, int_val}
 		tmp_set = set(cls.__all_keys)
@@ -229,7 +229,7 @@ class EnumDefault(IntEnum):
 	@property
 	def name(self):
 		""""The name of enum member."""
-		res = super(EnumDefault, self).name  # type: _str_hint
+		res = super(EnumDefault, self).name  # type: _str_h
 		return res
 
 	@property
@@ -241,7 +241,7 @@ class EnumDefault(IntEnum):
 	@classmethod
 	def get(
 		cls,
-		key,  # type: _t.Union[_str_hint, IntEnum, int]
+		key,  # type: _t.Union[_str_h, IntEnum, int]
 		default=None  # type: _t.Optional[EnumDefault]
 	):
 		"""
@@ -260,7 +260,7 @@ class EnumDefault(IntEnum):
 		if (not cls.__is_init()) or cls.__default is None:
 			raise AttributeError('{} has no members.'.format(cls))
 		if isinstance(key, IntEnum) and not isinstance(key, cls):
-			nm = key.name  # type: _str_hint
+			nm = key.name  # type: _str_h
 			key = nm if (nm in cls.__all_keys) else key.value
 		if default is None or not isinstance(default, cls):
 			default = cls.__default
@@ -272,7 +272,7 @@ class EnumDefault(IntEnum):
 	@classmethod
 	def item_name(
 		cls,
-		key,  # type: _t.Union[_str_hint, IntEnum, int]
+		key,  # type: _t.Union[_str_h, IntEnum, int]
 		default=None  # type: _t.Optional[EnumDefault]
 	):
 		return cls.get(key, default=default).name
@@ -280,7 +280,7 @@ class EnumDefault(IntEnum):
 	@classmethod
 	def item_value(
 		cls,
-		key,  # type: _t.Union[_str_hint, IntEnum, int]
+		key,  # type: _t.Union[_str_h, IntEnum, int]
 		default=None  # type: _t.Optional[EnumDefault]
 	):
 		return cls.get(key, default=default).value

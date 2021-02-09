@@ -5,7 +5,7 @@ import sys
 import time
 
 cmd_args = sys.argv[:]
-print cmd_args
+print(cmd_args)
 # cmd_args = [
 # 	r'E:\5-Internet\Dropbox\0-Settings\Python\for_nuke\process_with_script.py',
 # 	r'E:\5-Internet\Dropbox\0-Settings\Python\for_nuke\post-bake_turtle_unity.nk',
@@ -47,21 +47,21 @@ if len(cmd_args) > 5:
 import nuke as nk
 from drl_common import filesystem as fs
 
-print 'Waiting for %s seconds...' % sleep_time
+print('Waiting for %s seconds...' % sleep_time)
 time.sleep(sleep_time)
 
-print "Opening nuke script: " + nk_script
+print("Opening nuke script: " + nk_script)
 nk.scriptOpen(nk_script)
 r = nk.toNode(read_node_name)
 r['file'].setValue(src_path)
-print "Set read-file to: " + src_path
+print("Set read-file to: " + src_path)
 
 w = nk.toNode(write_node_name)
 w['file'].setValue(out_path)
-print "Set write-file output to: " + out_path
+print("Set write-file output to: " + out_path)
 fs.clean_path_for_file(out_path, overwrite_folders=1, remove_file=1)
 nk.execute(w, 1,1,1, continueOnError=False)
-print "File rendered."
+print("File rendered.")
 
-print 'Waiting for %s seconds...' % sleep_time
+print('Waiting for %s seconds...' % sleep_time)
 time.sleep(sleep_time)

@@ -7,11 +7,17 @@ import os
 import time
 from PySide.QtCore import QProcess, QProcessEnvironment
 from drl_common import filesystem as fs
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	t_strict_str as _str,
+	t_strict_unicode as _unicode,
+)
 from . import nk_envs
 
 
 def launch_nuke_with_command(cmd='', home_override_env='DRL_NUKE_HOME'):
-	if not isinstance(cmd, (str, unicode)) or not cmd:
+	if not isinstance(cmd, _str_t) or not cmd:
 		cmd = '"%s"' % nk_envs.get_nuke_exe_path()
 
 	# p = sp.Popen(cmd, stderr=None, stdin=None, stdout=None, shell=False)
@@ -28,14 +34,14 @@ def launch_nuke_with_command(cmd='', home_override_env='DRL_NUKE_HOME'):
 
 	def to_output():
 		output = proc.readAll()
-		if not isinstance(output, (str, unicode)):
+		if not isinstance(output, _str_t):
 			try:
-				output = str(output)
+				output = _str(output)
 			except:
-				output = unicode(output)
+				output = _unicode(output)
 		output = output.strip()
 		if output:
-			print output
+			print(output)
 
 	proc.readyRead.connect(to_output)
 	proc.start(cmd)
@@ -83,7 +89,7 @@ def process(
 		def wait_for(sec):
 			if not isinstance(sec, (int, float)) or sec <= 0:
 				return
-			print 'Waiting for {0} seconds...'.format(sec)
+			print('Waiting for {0} seconds...'.format(sec))
 			time.sleep(sec)
 		# src_tex = r'E:\1-Projects\5-ShaderFX\sources\Trash\Trash.exr'
 
@@ -109,11 +115,11 @@ def process(
 			auto_to_exr=auto_to_exr
 		)
 
-		print "Launch Nuke with command: " + cmd
+		print("Launch Nuke with command: " + cmd)
 		launch_nuke_with_command(cmd, home_override_env=home_override_env)
 
 		wait_for(post_wait)
 		if remove_src_tex:
-			print "Removing raw rendered texture: " + src_tex
+			print("Removing raw rendered texture: " + src_tex)
 			os.remove(src_tex)
-		print "---- Nuke processing completed ----"
+		print("---- Nuke processing completed ----")

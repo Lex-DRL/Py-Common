@@ -13,7 +13,7 @@ from drl_common.py_2_3 import (
 	str_t as _str_t,
 	str_h as _str_h,
 	t_strict_unicode as _t_strict_unicode,
-	t_strict_str as _t_strict_str
+	t_strict_str as _t_strict_str,
 )
 
 try:
@@ -22,7 +22,7 @@ except ImportError:
 	try:
 		from modules import (
 			pip_install as __pip,
-			PipError as __pipEr
+			PipError as __pipEr,
 		)
 	except ImportError:
 		raise ImportError(
@@ -476,7 +476,7 @@ def add_envs(
 
 	env_items = list(env_args)
 	env_items.extend(
-		(k, v) for k, v in env_kwargs.iteritems()
+		(k, v) for k, v in env_kwargs.items()
 	)
 
 	for env_nm, new_val in env_items:

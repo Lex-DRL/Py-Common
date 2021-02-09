@@ -1,7 +1,12 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 import csv
 
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	t_strict_unicode as _unicode,
+)
 
 def __get_dialect(file_handle, dialect=None):
 	if dialect is None:
@@ -18,7 +23,7 @@ def read_csv(csv_file='', dialect=None, utf8=False, **kwargs):
 		reader = csv.reader(fl, dialect, **kwargs)
 		if utf8:
 			for row in reader:
-				yield [unicode(cell, 'utf-8') for cell in row]
+				yield [_unicode(cell, 'utf-8') for cell in row]
 		else:
 			for row in reader:
 				yield row

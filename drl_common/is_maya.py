@@ -1,4 +1,9 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
+
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 
 __is_maya = True
 try:
@@ -8,7 +13,7 @@ except ImportError:
 
 if __is_maya:
 	_path = cmds.__file__.replace('\\', '/')
-	assert isinstance(_path, (str, unicode))
+	assert isinstance(_path, _str_t)
 	_split = _path.split('/')
 	if (
 		len(_split) > 4 and

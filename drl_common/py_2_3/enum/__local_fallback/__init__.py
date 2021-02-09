@@ -9,7 +9,7 @@ version = 1, 1, 6
 pyver = float('%s.%s' % _sys.version_info[:2])
 
 try:
-	any
+	any = any
 except NameError:
 	def any(iterable):
 		for element in iterable:
@@ -23,17 +23,18 @@ except ImportError:
 	OrderedDict = None
 
 try:
-	basestring
+	_basestr = basestring
 except NameError:
 	# In Python 2 basestring is the ancestor of both str and unicode
 	# in Python 3 it's just str, but was missing in 3.1
-	basestring = str
+	_basestr = str
 
 try:
-	unicode
+	_unicode = unicode
 except NameError:
 	# In Python 3 unicode no longer exists (it's just str)
-	unicode = str
+	_unicode = str
+
 
 class _RouteClassAttributeToGetattr(object):
 	"""Route attribute access on a class to __getattr__.
@@ -433,7 +434,7 @@ class EnumMeta(type):
 		"""
 		if pyver < 3.0:
 			# if class_name is unicode, attempt a conversion to ASCII
-			if isinstance(class_name, unicode):
+			if isinstance(class_name, _unicode):
 				try:
 					class_name = class_name.encode('ascii')
 				except UnicodeEncodeError:
@@ -447,22 +448,22 @@ class EnumMeta(type):
 		_order_ = []
 
 		# special processing needed for names?
-		if isinstance(names, basestring):
+		if isinstance(names, _basestr):
 			names = names.replace(',', ' ').split()
-		if isinstance(names, (tuple, list)) and isinstance(names[0], basestring):
+		if isinstance(names, (tuple, list)) and isinstance(names[0], _basestr):
 			names = [(e, i+start) for (i, e) in enumerate(names)]
 
 		# Here, names is either an iterable of (name, value) or a mapping.
 		item = None  # in case names is empty
 		for item in names:
-			if isinstance(item, basestring):
+			if isinstance(item, _basestr):
 				member_name, member_value = item, names[item]
 			else:
 				member_name, member_value = item
 			classdict[member_name] = member_value
 			_order_.append(member_name)
 		# only set _order_ in classdict if name/value was not from a mapping
-		if not isinstance(item, basestring):
+		if not isinstance(item, _basestr):
 			classdict['_order_'] = ' '.join(_order_)
 		enum_class = metacls.__new__(metacls, class_name, bases, classdict)
 

@@ -2,6 +2,11 @@ __author__ = 'Lex Darlog (DRL)'
 
 import os
 import sys
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	raw_input as _input,
+)
 from drl_cg.nuke import launch_nk_process as _launch_nk
 from drl_cg.nuke.processor import errors as _err
 
@@ -24,7 +29,7 @@ files_to_process = []
 
 
 def append_to_list(p):
-	if isinstance(p, (str, unicode)) and os.path.exists(p):
+	if isinstance(p, _str_t) and os.path.exists(p):
 		if os.path.isfile(p) and os.path.splitext(p)[-1].lower() == '.exr':
 			files_to_process.append(p)
 			return
@@ -46,5 +51,5 @@ for f in files_to_process:
 		f, out, nk_script=nk_file, auto_to_exr=False, post_wait=0.0
 	)
 
-print u'Done.\nPress <Enter> to finish...'
-raw_input()
+print(u'Done.\nPress <Enter> to finish...')
+_input()

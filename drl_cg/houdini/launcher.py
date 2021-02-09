@@ -15,7 +15,7 @@ except ImportError:
 
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_h as _str_h
+	str_h as _str_h,
 )
 
 # endregion
@@ -63,7 +63,7 @@ def with_envs(
 	# fix houdini ENVs if any specified (they require '&'):
 	all_env_vars = (
 		(k.upper(), v)
-		for k, v in environ.iteritems() if isinstance(k, _str_t)
+		for k, v in environ.items() if isinstance(k, _str_t)
 	)  # type: _t.Generator[_t.Tuple[_str_h, _str_h], _t.Any, None]
 	hou_path_vars = (
 		(k, v)

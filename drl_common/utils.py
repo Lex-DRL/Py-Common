@@ -1,12 +1,14 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 from collections import (
 	Iterable as _Iterable,
-	Iterator as _Iterator
+	Iterator as _Iterator,
 )
 from .py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_h as _str_h,
+	izip as _izip,
+	izip_longest as _izip_longest,
 )
 from . import errors as _err
 
@@ -16,15 +18,6 @@ try:
 	import typing as _t
 except ImportError:
 	pass
-
-try:
-	from itertools import (
-		izip as _izip,
-		izip_longest as _izip_longest
-	)
-except ImportError:
-	from itertools import zip_longest as _izip_longest
-	_izip = zip
 
 # only for backward compatibility in legacy code:
 from .cols import DefaultTuple, DefaultList, Container
@@ -114,11 +107,18 @@ def to_ranges_generator(iterable):
 	:return: <generator object>
 	"""
 	import itertools
+
+	def key_f(x):
+		"""
+		Returns how much the current value is offset from it's index.
+		Each range will have the same offset, so they'll end up in the same group.
+		"""
+		itm_id, val = x
+		return val - itm_id
+
 	for key, range_group in itertools.groupby(
 		enumerate(iterable),  # pairs of item's id in the list and it's actual value
-		lambda (itm_id, val): val - itm_id
-		# ^ How much the current value is offset from it's index.
-		# Each range will have the same offset, so they'll end up in the same group.
+		key_f
 	):
 		range_group = list(range_group)
 		yield (
@@ -178,7 +178,7 @@ def group_items(items, key_f=None):
 
 	return [  # list of tuples:
 		tuple(v) for k, v in sorted(
-			grouped.iteritems(),
+			grouped.items(),
 			key=lambda x: x[0]
 		)
 	]

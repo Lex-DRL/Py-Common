@@ -1,5 +1,9 @@
 import math
 
+from drl_common.py_2_3 import (
+	xrange as _xrange,
+)
+
 
 def func_with_10_octaves(x):
 	a, b, c, d = (
@@ -58,7 +62,7 @@ def find_curve_fit():
 
 	n = 100
 	step = 1.0 / n
-	guessed_x = np.array([i * step for i in xrange(1, n + 1)])
+	guessed_x = np.array([i * step for i in _xrange(1, n + 1)])
 	guessed_y = np.array([func_np(x, *guess) for x in guessed_x])
 
 	# check that np and math funcs output the same result:

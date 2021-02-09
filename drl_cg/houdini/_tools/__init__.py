@@ -16,7 +16,7 @@ except ImportError:
 
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h
+	str_hint as _str_h,
 )
 
 # endregion

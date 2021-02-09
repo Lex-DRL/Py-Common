@@ -1,15 +1,18 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 from . import errors as _err
 import os as _os
 from os import path as _pth
 
 
-def path_exists(path, not_link=False):
-	"""
-	:type path: str|unicode
-	:type not_link: bool
-	"""
+def path_exists(
+	path,  # type: _str_h
+	not_link=False,
+):
 	from . import to_unix_path
 	path = to_unix_path(path)
 	if not _pth.exists(path):
@@ -19,11 +22,10 @@ def path_exists(path, not_link=False):
 	return path
 
 
-def dir_exists(path, not_link=False):
-	"""
-	:type path: str|unicode
-	:type not_link: bool
-	"""
+def dir_exists(
+	path,  # type: _str_h
+	not_link=False,
+):
 	path = path_exists(path, False)
 	if not _pth.isdir(path):
 		raise _err.NotDir(path)
@@ -32,11 +34,10 @@ def dir_exists(path, not_link=False):
 	return path
 
 
-def file_exists(path, not_link=False):
-	"""
-	:type path: str|unicode
-	:type not_link: bool
-	"""
+def file_exists(
+	path,  # type: _str_h
+	not_link=False,
+):
 	path = path_exists(path, False)
 	if not _pth.isfile(path):
 		raise _err.NotFile(path)
@@ -45,12 +46,11 @@ def file_exists(path, not_link=False):
 	return path
 
 
-def file_readable(path, not_link=False, try_read=False):
-	"""
-	:type path: str|unicode
-	:type not_link: bool
-	:type try_read: bool
-	"""
+def file_readable(
+	path,  # type: _str_h
+	not_link=False,
+	try_read=False,
+):
 	path = file_exists(path, not_link)
 
 	def _is_problem():
@@ -70,11 +70,10 @@ def file_readable(path, not_link=False, try_read=False):
 	return path
 
 
-def file_writeable(path, not_link=True):
-	"""
-	:type path: str|unicode
-	:type not_link: bool
-	"""
+def file_writeable(
+	path,  # type: _str_h
+	not_link=True,
+):
 	path = file_exists(path, not_link)
 	if not _os.access(path, _os.W_OK):
 		raise _err.NotWriteable(path)

@@ -1,10 +1,12 @@
-from py_2_3 import (
+from .py_2_3 import (
 	typing as _t,
-	str_t, str_hint, izip
+	str_t,
+	str_hint,
+	izip,
 )
 import collections as _c
 
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 
 def common_prefix(

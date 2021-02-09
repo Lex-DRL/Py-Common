@@ -1,6 +1,11 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 import inspect as _inspect
+
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 
 
 class NotTypeError(TypeError):
@@ -64,11 +69,11 @@ class WrongTypeError(TypeError):
 	def __init__(self, val, types=None, var_name=None, types_name=None):
 		msg = (
 			'Wrong type provided for <%s>.' % var_name
-			if isinstance(var_name, (str, unicode)) and var_name else
+			if isinstance(var_name, _str_t) and var_name else
 			'Wrong type provided.'
 		)
 		types_given = True
-		if not (isinstance(types_name, (str, unicode)) and types_name):
+		if not (isinstance(types_name, _str_t) and types_name):
 			if types is None:
 				types_given = False
 			else:
@@ -179,20 +184,21 @@ class EmptyStringError(ValueError):
 	def __init__(self, var_name=None):
 		msg = (
 			'Empty string provided for <%s>.' % var_name
-			if isinstance(var_name, (str, unicode)) and var_name else
+			if isinstance(var_name, _str_t) and var_name else
 			'Empty string provided.'
 		)
 		super(EmptyStringError, self).__init__(msg)
 		self.var_name = var_name
 
-	def raise_if_empty(self, val):
+	def raise_if_empty(
+		self,
+		val  # type: _str_h
+	):
 		"""
 		Raise self if bool(val) is False.
 
 		:param val: tested value.
-		:type val: str|unicode
 		:return: given value (asserted it's string).
-		:rtype: str|unicode
 		"""
 		if not val:
 			raise self
@@ -225,7 +231,7 @@ class NoValueError(ValueError):
 	def __init__(self, var_name=None):
 		msg = (
 			'No value provided for <%s>.' % var_name
-			if isinstance(var_name, (str, unicode)) and var_name else
+			if isinstance(var_name, _str_t) and var_name else
 			'No value provided.'
 		)
 		super(NoValueError, self).__init__(msg)
@@ -289,7 +295,7 @@ class WrongValueError(ValueError):
 	def __init__(self, val, var_name=None, expected_value=None):
 		msg = (
 			'Wrong value provided for <%s>.' % var_name
-			if isinstance(var_name, (str, unicode)) and var_name else
+			if isinstance(var_name, _str_t) and var_name else
 			'Wrong value provided.'
 		)
 		if expected_value is None:
@@ -331,7 +337,7 @@ class NotStringError(WrongTypeError):
 	:param var_name: optional string containing the name of the checked variable (for easier debug).
 	"""
 	def __init__(self, val, var_name=None):
-		super(NotStringError, self).__init__(val, (str, unicode), var_name, 'string')
+		super(NotStringError, self).__init__(val, _str_t, var_name, 'string')
 
 	def raise_if_needed_or_empty(self):
 		"""
