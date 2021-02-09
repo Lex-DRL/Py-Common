@@ -12,11 +12,11 @@ except ImportError:
 from drl_common.utils import flatten_gen as _flatten
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_hint as _str_h,
 )
 from drl_common.py_2_3.enum import (
 	EnumDefault as __EnumDefault,
-	override_default as __default
+	override_default as __default,
 )
 
 
@@ -41,8 +41,8 @@ class PipError(ImportError):
 	# noinspection PyShadowingBuiltins
 	def __init__(
 		self,
-		message='',  # type: _str_hint
-		type=PipErrorType.UNKNOWN  # type: _t.Union[PipErrorType, _str_hint, int]
+		message='',  # type: _str_h
+		type=PipErrorType.UNKNOWN  # type: _t.Union[PipErrorType, _str_h, int]
 	):
 		super(PipError, self).__init__(message)
 		self.__type = PipErrorType.get(type)  # type: PipErrorType
@@ -55,7 +55,7 @@ class PipError(ImportError):
 
 # noinspection PyIncorrectDocstring
 def pip_install(
-	module_names,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+	module_names,  # type: _t.Union[_str_h, _t.Iterable[_str_h]]
 	upgrade=True,
 	force_reinstall=False
 ):

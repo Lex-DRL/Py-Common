@@ -1,6 +1,8 @@
 from .py_2_3 import (
 	typing as _t,
-	str_t, str_hint, izip
+	str_t,
+	str_hint,
+	izip,
 )
 import collections as _c
 

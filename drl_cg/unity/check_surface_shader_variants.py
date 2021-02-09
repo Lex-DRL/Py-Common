@@ -4,6 +4,10 @@
 __author__ = 'Lex Darlog (DRL)'
 
 from drl_common import filesystem as fs
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 
 
 class Check(object):
@@ -25,7 +29,7 @@ class Check(object):
 			self.separator_lines = separator_lines
 
 	def __set_filepath(self, filepath):
-		if not isinstance(filepath, (str, unicode)):
+		if not isinstance(filepath, _str_t):
 			raise Exception("String expected as <filepath>. Got: " + repr(filepath))
 		fs.error_check.file_readable(filepath)
 		self.__filepath = filepath
@@ -55,7 +59,7 @@ class Check(object):
 		return self.__sep
 	@separator.setter
 	def separator(self, value):
-		if not isinstance(value, (str, unicode, unichr)):
+		if not isinstance(value, _str_t):
 			raise Exception('Wrong type. String expected. Got: ' + repr(value))
 		self.__sep = value
 
@@ -80,7 +84,7 @@ class Check(object):
 			if i < prev:
 				continue
 
-			assert isinstance(ln, (str, unicode, unichr))
+			assert isinstance(ln, _str_t)
 			if ln.startswith(sep):
 				groups.append(lines[prev:i])
 				prev = i + skip_delta

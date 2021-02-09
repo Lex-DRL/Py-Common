@@ -7,11 +7,17 @@ import os
 import time
 from PySide.QtCore import QProcess, QProcessEnvironment
 from drl_common import filesystem as fs
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	t_strict_str as _str,
+	t_strict_unicode as _unicode,
+)
 from . import nk_envs
 
 
 def launch_nuke_with_command(cmd='', home_override_env='DRL_NUKE_HOME'):
-	if not isinstance(cmd, (str, unicode)) or not cmd:
+	if not isinstance(cmd, _str_t) or not cmd:
 		cmd = '"%s"' % nk_envs.get_nuke_exe_path()
 
 	# p = sp.Popen(cmd, stderr=None, stdin=None, stdout=None, shell=False)
@@ -28,11 +34,11 @@ def launch_nuke_with_command(cmd='', home_override_env='DRL_NUKE_HOME'):
 
 	def to_output():
 		output = proc.readAll()
-		if not isinstance(output, (str, unicode)):
+		if not isinstance(output, _str_t):
 			try:
-				output = str(output)
+				output = _str(output)
 			except:
-				output = unicode(output)
+				output = _unicode(output)
 		output = output.strip()
 		if output:
 			print output

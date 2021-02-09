@@ -7,7 +7,14 @@ import sys
 from os import path
 from xml.etree import ElementTree
 
-from drl_common import filesystem as fs, drl_csv
+from drl_common import (
+	drl_csv,
+	filesystem as fs,
+)
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 
 
 cmd_args = sys.argv
@@ -30,13 +37,13 @@ class DataItem(object):
 		self.__set_size_imported(size_imported)
 
 	def __set_name(self, value):
-		if not isinstance(value, (str, unicode)):
+		if not isinstance(value, _str_t):
 			raise TypeError("String value expected for <asset_name> property. Got: " + repr(value))
 		self.__asset_name = value
 
 	@property
 	def asset_name(self):
-		assert isinstance(self.__asset_name, (str, unicode))
+		assert isinstance(self.__asset_name, _str_t)
 		return self.__asset_name
 
 	@asset_name.setter
@@ -100,7 +107,7 @@ def get_data(f):
 	res = []
 	for a in used_assets:
 		name = a.find('Name').text
-		if isinstance(name, (str, unicode)) and (
+		if isinstance(name, _str_t) and (
 			name.endswith('.shader') or name.endswith('.cginc')
 		):
 			res.append(DataItem(

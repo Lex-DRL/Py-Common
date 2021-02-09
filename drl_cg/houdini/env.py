@@ -20,7 +20,7 @@ except ImportError:
 
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_h
+	str_hint as _str_h,
 )
 
 # endregion
@@ -31,7 +31,7 @@ import errno as _errno
 
 from drl_cg.env import (
 	_clean,
-	DRL_CG_PATH as _CG_PATH
+	DRL_CG_PATH as _CG_PATH,
 )
 
 

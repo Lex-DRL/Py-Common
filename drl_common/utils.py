@@ -2,11 +2,13 @@ __author__ = 'DRL'
 
 from collections import (
 	Iterable as _Iterable,
-	Iterator as _Iterator
+	Iterator as _Iterator,
 )
 from .py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_h as _str_h,
+	izip as _izip,
+	izip_longest as _izip_longest,
 )
 from . import errors as _err
 
@@ -16,15 +18,6 @@ try:
 	import typing as _t
 except ImportError:
 	pass
-
-try:
-	from itertools import (
-		izip as _izip,
-		izip_longest as _izip_longest
-	)
-except ImportError:
-	from itertools import zip_longest as _izip_longest
-	_izip = zip
 
 # only for backward compatibility in legacy code:
 from .cols import DefaultTuple, DefaultList, Container

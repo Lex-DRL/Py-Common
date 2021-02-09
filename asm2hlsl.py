@@ -12,10 +12,15 @@ from pprint import pprint as pp
 import os as _os
 import string as _str
 import re as _re
-from itertools import izip as _izip
 from collections import namedtuple as _namedtuple
 
-_str_t = (str, unicode)
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	t_strict_unicode as _unicode,
+	izip as _izip,
+	xrange as _xrange,
+)
 
 
 # region Enums
@@ -396,7 +401,7 @@ class DeclaredVar(object):
 		name,  # type: Optional[str]
 		array_size=None,  # type: Optional[int]
 		type_str=None,  # type: Optional[str]
-		comment=None,  # type: Optional[Union[str, unicode]]
+		comment=None,  # type: Optional[_str_h]
 		register=None,  # type: Optional[str]
 		regs_num=None  # type: Optional[int]
 	):
@@ -408,7 +413,7 @@ class DeclaredVar(object):
 		self.name = cleaner_str(name)
 		self.array_size = array_size  # type: int
 		self.type_str = cleaner_str(type_str)
-		self.comment = comment  # type: Optional[Union[str, unicode]]
+		self.comment = comment  # type: Optional[_str_h]
 		self.register = cleaner_str(register)
 		self.regs_num = regs_num  # type: Optional[int]
 
@@ -443,7 +448,7 @@ out_ext = '.hlsl'
 # region Functions splitting the lines list to a bunch of separate shader blocks
 
 def _classify_line(
-	line  # type: Union[str, unicode]
+	line  # type: _str_h
 ):
 	"""
 	Generate the initial line's namedtuple.
@@ -643,7 +648,7 @@ def _detect_shader_ranges(
 
 		# generate range ends for intermediate ranges:
 		next_range_start = res_blocks[-1].first_line
-		for i in reversed(xrange(len(res_blocks) - 1)):  # from pre-last to first range
+		for i in reversed(_xrange(len(res_blocks) - 1)):  # from pre-last to first range
 			cur = res_blocks[i]  # type: CodeBlock
 			cur = CodeBlock(cur.type, cur.sm, cur.first_line, next_range_start - 1)
 			next_range_start = cur.first_line
@@ -730,7 +735,7 @@ def _detect_shader_ranges(
 				None
 			)
 
-		for i_res in xrange(1, len(res_ranges)):  # skip the 1st one
+		for i_res in _xrange(1, len(res_ranges)):  # skip the 1st one
 			cur_code = res_ranges[i_res].code  # type: CodeBlock
 			cur_start, cur_end = cur_code.first_line, cur_code.last_line  # type: int
 			preceding_comments = [
@@ -783,7 +788,7 @@ def _detect_shader_ranges(
 		# so far, all of the post-comment should be none.
 		# Let's check if we could populate them with some lines
 		# from the next block's preceding comment:
-		for i_res in xrange(len(res_ranges) - 1):  # skip the last one
+		for i_res in _xrange(len(res_ranges) - 1):  # skip the last one
 			next_i = i_res + 1
 			next_block = res_ranges[next_i]  # type: ShaderLineRanges
 			next_pre_c, next_cd, next_post_c = next_block  # type: (Optional[Range], CodeBlock, Optional[Range])
@@ -894,7 +899,7 @@ _re_regs_mapping = _re.compile(
 
 
 def _extract_var_names(
-	comment_lines  # type: List[Union[str, unicode]]
+	comment_lines  # type: List[_str_h]
 ):
 	"""
 	Try to detect the original names of registers from the block of comments.
@@ -923,7 +928,7 @@ def _extract_var_names(
 	def last_true_index(
 		values  # type: Union[List, Tuple]
 	):
-		for i in reversed(xrange(len(values))):
+		for i in reversed(_xrange(len(values))):
 			if values[i]:
 				return i
 		return -1
@@ -944,10 +949,10 @@ def _extract_var_names(
 		# and now let's split and filter:
 		pre_block = [
 			l for is_l, l in comment_lines[:start_line] if is_l
-		]  # type: List[Union[str, unicode]]
+		]  # type: List[_str_h]
 		comment_lines = [
 			l for is_l, l in comment_lines[start_line:] if is_l
-		]  # type: List[Union[str, unicode]]
+		]  # type: List[_str_h]
 
 		# remove any lines related to the block from the pre-block and combine it with left comment_lines:
 		if pre_block:
@@ -959,7 +964,7 @@ def _extract_var_names(
 			])
 			if start_line > -1:
 				pre_block = pre_block[:start_line+1]
-				comment_lines = pre_block + comment_lines  # type: List[Union[str, unicode]]
+				comment_lines = pre_block + comment_lines  # type: List[_str_h]
 
 		vars_list = [
 			DeclaredVar(
@@ -982,7 +987,7 @@ def _extract_var_names(
 	shared.perfect_match_from = -1
 
 	def match_as_reg_mapping(
-		line,  # type: Union[str, unicode]
+		line,  # type: _str_h
 		line_i  # type: int
 	):
 		"""
@@ -1061,7 +1066,7 @@ def _extract_var_names(
 	comment_lines = [
 		l for i, (do_m, l) in enumerate(_izip(matches, comment_lines))
 		if not do_m and (i < shared.start or i >= shared.end)
-	]  # type: List[Union[str, unicode]]
+	]  # type: List[_str_h]
 	matches = (m.groups() for m in matches if m)
 
 	if not vars_list:

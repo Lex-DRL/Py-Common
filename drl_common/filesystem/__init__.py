@@ -1,14 +1,10 @@
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 import os
 import io
 from os import path as _pth
 import shutil as sh
 
-from drl_common.py_2_3 import (
-	str_t as _str_t,
-	str_hint as _str_hint
-)
 try:
 	# support type hints in Python 3:
 	# noinspection PyUnresolvedReferences
@@ -16,11 +12,20 @@ try:
 except ImportError:
 	pass
 
-import drl_common.errors as err
-from drl_common import utils
 from . import errors, error_check, file_time
+
 from modules import pip_install as _inst
-from drl_common import is_maya as _im
+
+from drl_common import (
+	errors as err,
+	is_maya as _im,
+	utils,
+)
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+	t_strict_unicode as _unicode,
+)
 from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
 
 _is_maya = _im.is_maya()
@@ -36,8 +41,8 @@ class FileFilter(object):
 	"""
 	def __init__(
 		self,
-		name,  # type: _str_hint
-		filters=None  # type: _t.Optional[_t.Tuple[_str_hint, ...]]
+		name,  # type: _str_h
+		filters=None  # type: _t.Optional[_t.Tuple[_str_h, ...]]
 	):
 		"""
 
@@ -46,16 +51,16 @@ class FileFilter(object):
 		"""
 		super(FileFilter, self).__init__()
 		self.__name = ''
-		self.__filters = tuple()  # type: _t.Tuple[_str_hint, ...]
+		self.__filters = tuple()  # type: _t.Tuple[_str_h, ...]
 		self._set_name(name)
 		self._set_filters(filters)
 
 	__error_check_conditions = [
 		lambda x: isinstance(x, FileFilter),
 		lambda x: not x,
-		lambda x: isinstance(x, (str, unicode)),
+		lambda x: isinstance(x, _str_t),
 		lambda x: isinstance(x, (list, tuple)) and all(
-			[isinstance(f, (str, unicode)) for f in x]
+			[isinstance(f, _str_t) for f in x]
 		)
 	]  # type: _t.List[_t.Callable[[_t.Any], bool]]
 
@@ -72,7 +77,7 @@ class FileFilter(object):
 	@staticmethod
 	def error_check_as_argument(
 		file_filter,
-		arg_name=None  # type: _t.Optional[_str_hint]
+		arg_name=None  # type: _t.Optional[_str_h]
 	):
 		"""
 		Ensures the given argument is ``FileFilter``.
@@ -140,7 +145,7 @@ class FileFilter(object):
 		"""
 		if filters is None or not filters:
 			filters = ['']
-		if isinstance(filters, (str, unicode)):
+		if isinstance(filters, _str_t):
 			filters = [filters]
 		if isinstance(filters, tuple):
 			filters = list(filters)
@@ -159,7 +164,7 @@ class FileFilter(object):
 	def _set_filters(self, filters):
 		flt = FileFilter._error_check_filters_as_list(filters)
 		flt = utils.remove_duplicates(flt)
-		self.__filters = tuple(flt)  # type: _t.Tuple[_str_hint, ...]
+		self.__filters = tuple(flt)  # type: _t.Tuple[_str_h, ...]
 
 	def set_filters(self, filters):
 		self._set_filters(filters)
@@ -169,12 +174,12 @@ class FileFilter(object):
 		flt = list(self.__filters)
 		flt.extend(FileFilter._error_check_filters_as_list(filters))
 		flt = utils.remove_duplicates(flt)
-		self.__filters = tuple(flt)  # type: _t.Tuple[_str_hint, ...]
+		self.__filters = tuple(flt)  # type: _t.Tuple[_str_h, ...]
 		return self
 
 	@property
 	def filters(self):
-		res = self.__filters[:]  # type: _t.Tuple[_str_hint, ...]
+		res = self.__filters[:]  # type: _t.Tuple[_str_h, ...]
 		return res
 
 	@filters.setter
@@ -218,7 +223,7 @@ def __convert_path_slashes(
 
 
 def to_windows_path(
-	path,  # type: _str_hint
+	path,  # type: _str_h
 	trailing_slash=None,  # type: _t.Optional[bool]
 	leading_slash=False  # type: _t.Optional[bool]
 ):
@@ -241,7 +246,7 @@ def to_windows_path(
 
 
 def to_unix_path(
-	path,  # type: _str_hint
+	path,  # type: _str_h
 	trailing_slash=None,  # type: _t.Optional[bool]
 	leading_slash=False  # type: _t.Optional[bool]
 ):
@@ -269,7 +274,7 @@ def to_unix_path(
 
 def __is_overwrite_enabled(
 	overwrite,  # type: _t.Union[int, bool]
-	path,  # type: _str_hint
+	path,  # type: _str_h
 	yes_button='Yes', no_button='No (error)',
 	message=(
 		"You're trying to access a file as a folder.\n"
@@ -310,7 +315,7 @@ def __is_overwrite_enabled(
 
 
 def ensure_breadcrumbs_are_folders(
-	path,  # type: _str_hint
+	path,  # type: _str_h
 	overwrite=0  # type: _t.Union[int, bool]
 ):
 	"""
@@ -399,7 +404,7 @@ def ensure_breadcrumbs_are_folders(
 
 
 def clean_path_for_folder(
-	path,  # type: _str_hint
+	path,  # type: _str_h
 	overwrite=0  # type: _t.Union[int, bool]
 ):
 	"""
@@ -448,7 +453,7 @@ def clean_path_for_folder(
 
 
 def clean_path_for_file(
-	path,  # type: _str_hint
+	path,  # type: _str_h
 	overwrite_folders=0,  # type: _t.Union[int, bool]
 	remove_file=0  # type: _t.Union[int, bool]
 ):
@@ -487,7 +492,7 @@ def clean_path_for_file(
 	"""
 	path = ensure_breadcrumbs_are_folders(
 		path, overwrite_folders
-	)  # type: _str_hint
+	)  # type: _str_h
 	# it's guaranteed to have no trailing slash now
 
 	if not os.path.exists(path):
@@ -575,7 +580,7 @@ def empty_dir(path, overwrite=0):
 
 
 def detect_file_encoding(
-	file_path,  # type: _str_hint
+	file_path,  # type: _str_h
 	limit=64*1024,  # 64 Kb
 	mode=None  # type: _t.Optional[DetectEncodingMode, int]
 ):
@@ -761,7 +766,7 @@ def detect_file_encoding(
 
 def read_file_lines(
 	file_path, encoding=None, strip_newline_char=True,
-	line_process_f=None  # type: _t.Optional[_t.Callable[[_str_hint], _str_hint]]
+	line_process_f=None  # type: _t.Optional[_t.Callable[[_str_h], _str_h]]
 ):
 	"""
 	High-level function reading a file at as list of lines.
@@ -794,12 +799,12 @@ def read_file_lines(
 	error_check.file_readable(file_path)
 
 	def _rstrip_with_processing(
-		line_str  # type: _str_hint
+		line_str  # type: _str_h
 	):
 		return line_process_f(line_str.rstrip('\r\n'))
 
 	def _rstrip_only(
-		line_str  # type: _str_hint
+		line_str  # type: _str_h
 	):
 		return line_str.rstrip('\r\n')
 
@@ -809,14 +814,14 @@ def read_file_lines(
 	else:
 		f = line_process_f if is_f_given else None
 
-	if isinstance(encoding, (str, unicode)) and encoding:
+	if isinstance(encoding, _str_t) and encoding:
 		# we do have an encoding
 		try:
 			with io.open(file_path, 'rt', encoding=encoding) as fl:
 				if f is None:
-					lines = list(fl)  # type: _t.List[unicode]
+					lines = list(fl)  # type: _t.List[_unicode]
 				else:
-					lines = [f(l) for l in fl]  # type: _t.List[unicode]
+					lines = [f(l) for l in fl]  # type: _t.List[_unicode]
 		except IOError:
 			raise errors.NotReadable(file_path)
 	else:
@@ -834,9 +839,9 @@ def read_file_lines(
 
 
 def read_file_lines_best_enc(
-	file_path,  # type: _str_hint
+	file_path,  # type: _str_h
 	strip_newline_char=True,
-	line_process_f=None,  # type: _t.Optional[_t.Callable[[_str_hint], _str_hint]]
+	line_process_f=None,  # type: _t.Optional[_t.Callable[[_str_h], _str_h]]
 	detect_limit=64*1024,  # 64 Kb
 	detect_mode=None,
 	sure_thresh=0.5
@@ -889,8 +894,8 @@ def read_file_lines_best_enc(
 
 
 def write_file_lines(
-	file_path,  # type: _str_hint
-	lines,  # type: _t.Union[_str_hint, _t.Iterable[_str_hint]]
+	file_path,  # type: _str_h
+	lines,  # type: _t.Union[_str_h, _t.Iterable[_str_h]]
 	encoding=None,  # type: _t.Optional[str]
 	newline='\n',  # type: _t.Optional[str]
 	newline_included=False
@@ -919,7 +924,7 @@ def write_file_lines(
 
 
 def dir_tree_gen(
-	root,  # type: _str_hint
+	root,  # type: _str_h
 	topdown=True,
 	onerror=None,  # type: _t.Optional[_t.Callable[[OSError], _t.Any]]
 	followlinks=False,
@@ -939,7 +944,7 @@ def dir_tree_gen(
 	root = root[0] + root[1:].replace('\\', '/').rstrip('/')
 
 	def _cleanup_cur_root_trailed(
-		rt  # type: _str_hint
+		rt  # type: _str_h
 	):
 		rt = rt.replace('\\', '/')
 		trailed = rt[0] + rt[1:].rstrip('/') + '/'
@@ -948,7 +953,7 @@ def dir_tree_gen(
 		return trailed, trailed
 
 	def _cleanup_cur_root_no_trail(
-		rt  # type: _str_hint
+		rt  # type: _str_h
 	):
 		rt = rt.replace('\\', '/')
 		no_trail = rt[0] + rt[1:].rstrip('/')

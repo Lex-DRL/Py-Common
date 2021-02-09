@@ -3,8 +3,14 @@
 
 __author__ = 'Lex Darlog (DRL)'
 
-from drl_common import errors as _err_comm
-from drl_common import filesystem as _fs
+from drl_common import (
+	errors as _err_comm,
+	filesystem as _fs,
+)
+from drl_common.py_2_3 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
 
 from . import errors
 
@@ -51,7 +57,7 @@ class NukeProcessor(object):
 		"""
 		if tex_arg is None:
 			tex_arg = list()
-		elif isinstance(tex_arg, (str, unicode)):
+		elif isinstance(tex_arg, _str_t):
 			tex_arg = [tex_arg]
 		elif isinstance(tex_arg, set):
 			tex_arg = list(sorted(tex_arg))
@@ -192,7 +198,7 @@ class NukeProcessor(object):
 				# or tuple with less than 2 items (single or empty).
 				# Anyway, we need to always use 1st source input.
 				if not(
-					src_0 and isinstance(src_0, (str, unicode))
+					src_0 and isinstance(src_0, _str_t)
 				):
 					# ... but the actual 1st source is not provided.
 					return _raiser

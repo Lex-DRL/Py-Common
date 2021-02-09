@@ -17,7 +17,7 @@ except ImportError:
 
 from .py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_h as _str_h,
 )
 
 import string as __string
@@ -107,9 +107,9 @@ class _BaseContainer(Dummy):
 
 	@staticmethod
 	def _proper_name_base(
-		name,  # type: _str_hint
-		class_reserved_children,  # type: _t.Set[_str_hint]
-		seen_set,  # type: _t.Set[_str_hint]
+		name,  # type: _str_h
+		class_reserved_children,  # type: _t.Set[_str_h]
+		seen_set,  # type: _t.Set[_str_h]
 		seen_set_add,  # type: _t.Callable[[str], None]
 	):
 		"""
@@ -146,7 +146,7 @@ class _BaseContainer(Dummy):
 	@classmethod
 	def _check_name_base(
 		cls,
-		name,  # type: _str_hint
+		name,  # type: _str_h
 		class_reserved_children,  # type: _t.Set[str]
 		seen_set,  # type: _t.Set[str]
 		seen_set_add,  # type: _t.Callable[[str], None]
@@ -223,7 +223,7 @@ class _BaseContainer(Dummy):
 
 	def _check_no_clash_base(
 		self,
-		name,  # type: _str_hint
+		name,  # type: _str_h
 		class_reserved_children,  # type: _t.Set[str]
 	):
 

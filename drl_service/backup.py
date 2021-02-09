@@ -11,14 +11,14 @@ except ImportError:
 	pass
 from drl_common.py_2_3 import (
 	str_t as _str_t,
-	str_hint as _str_hint
+	str_h as _str_h,
 )
+from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
 
 from os import path as _path
 import errno as _errno
 
 from drl_os import process as _prc
-from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
 
 _errno_all = frozenset(_errno.errorcode.values())
 
@@ -68,9 +68,9 @@ class BackupError(EnvironmentError):
 	# noinspection PyShadowingBuiltins
 	def __init__(
 		self,
-		message='',  # type: _str_hint
+		message='',  # type: _str_h
 		type=None,  # type: _t.Optional[_t.Union[BackupErrorType, int]]
-		path=None,  # type: _t.Optional[_str_hint]
+		path=None,  # type: _t.Optional[_str_h]
 		errno=None  # type: _t.Optional[int]
 	):
 		"""
@@ -120,14 +120,14 @@ _right_slash = 'z/z'[1]
 
 
 def _unix_p(
-	pth  # type: _str_hint
+	pth  # type: _str_h
 ):
 	return pth.replace(_wrong_slash, _right_slash)
 
 
 def copy_dir(
-	src_path,  # type: _str_hint
-	out_path,  # type: _str_hint
+	src_path,  # type: _str_h
+	out_path,  # type: _str_h
 	mode=None  # type: _t.Optional[_t.Union[BackupMode, int]]
 ):
 	mode = BackupMode.get(mode)  # type: BackupMode
