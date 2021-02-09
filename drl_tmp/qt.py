@@ -1,5 +1,5 @@
 # coding: utf-8
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 from PySide.QtGui import *
 

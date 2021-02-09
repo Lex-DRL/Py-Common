@@ -6,7 +6,7 @@ from .py_2_3 import (
 )
 import collections as _c
 
-__author__ = 'DRL'
+__author__ = 'Lex Darlog (DRL)'
 
 
 def common_prefix(
