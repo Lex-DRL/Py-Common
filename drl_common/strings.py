@@ -1,4 +1,4 @@
-from .py_2_3 import (
+from drl_py23 import (
 	typing as _t,
 	str_t,
 	str_hint,

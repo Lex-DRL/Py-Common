@@ -21,7 +21,7 @@ except ImportError:
 	pass
 
 from drl_common.cols import Dummy as _Dummy
-from drl_common.py_2_3 import (
+from drl_py23 import (
 	xrange as _xrange,
 )
 

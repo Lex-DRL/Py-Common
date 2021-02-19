@@ -8,7 +8,7 @@ require:
 
 #region initialisation
 
-from drl_common.py_2_3 import (
+from drl_py23 import (
 	raw_input as _input,
 )
 
