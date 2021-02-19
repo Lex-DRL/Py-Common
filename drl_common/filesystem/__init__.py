@@ -12,8 +12,7 @@ try:
 except ImportError:
 	pass
 
-from . import errors, error_check, file_time
-
+from drl_os.files import *
 from modules import pip_install as _inst
 
 from drl_common import (
