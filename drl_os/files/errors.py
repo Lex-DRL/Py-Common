@@ -9,7 +9,11 @@ except ImportError:
 from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
+	str_h_o as _str_h_o,
 	t_strict_unicode as _uni,
+	path_t as _path_t,
+	path_h as _path_h,
+	path_h_o as _path_h_o,
 )
 
 import errno
@@ -31,8 +35,8 @@ class _FilesystemBaseError(IOError):
 	def __init__(
 		self,
 		err_num,  # type: _t.Union[int, IOError]
-		filename=None,  # type: _t.Union[None, str, _uni]
-		err_str=None  # type: _t.Union[None, str, _uni]
+		filename=None,  # type: _path_h_o
+		err_str=None  # type: _str_h_o
 	):
 		if isinstance(err_num, IOError):
 			filename = err_num.filename if (filename is None) else filename
@@ -66,7 +70,7 @@ class _FilesystemBaseError(IOError):
 	def _check_str_arg(arg):
 		if arg is None:
 			return ''
-		if not isinstance(arg, (str, _uni)):
+		if not isinstance(arg, _path_t):
 			if arg:
 				try:
 					return str(arg)

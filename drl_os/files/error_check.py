@@ -3,6 +3,8 @@ __author__ = 'Lex Darlog (DRL)'
 from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
+	path_t as _path_t,
+	path_h as _path_h,
 )
 from . import errors as _err
 from .__convert_path import to_unix_path as _to_unix
@@ -11,7 +13,7 @@ from os import path as _pth
 
 
 def path_exists(
-	path,  # type: _str_h
+	path,  # type: _path_h
 	not_link=False,
 ):
 	path = _to_unix(path)
@@ -23,7 +25,7 @@ def path_exists(
 
 
 def dir_exists(
-	path,  # type: _str_h
+	path,  # type: _path_h
 	not_link=False,
 ):
 	path = path_exists(path, False)
@@ -35,7 +37,7 @@ def dir_exists(
 
 
 def file_exists(
-	path,  # type: _str_h
+	path,  # type: _path_h
 	not_link=False,
 ):
 	path = path_exists(path, False)
@@ -47,7 +49,7 @@ def file_exists(
 
 
 def file_readable(
-	path,  # type: _str_h
+	path,  # type: _path_h
 	not_link=False,
 	try_read=False,
 ):
@@ -71,7 +73,7 @@ def file_readable(
 
 
 def file_writeable(
-	path,  # type: _str_h
+	path,  # type: _path_h
 	not_link=True,
 ):
 	path = file_exists(path, not_link)
