@@ -16,16 +16,17 @@ from drl_py23 import (
 	path_h_o as _path_h_o,
 )
 
-import errno
+import os as _os
+import errno as _errno
 from os import strerror as _err_str
 
 
-class _FilesystemBaseError(IOError):
+class _FilesystemBaseError(OSError):
 	"""
 	Base class for filesystem-related errors, a simple wrapper for the `IOError`.
 
 	The only reasons why this class exists are:
-		* it can build a new error from another `IOError` given as a 1st argument
+		* it can build a new error from another `OSError` given as a 1st argument
 		*
 			it performs some automatic type conversion for input arguments
 			(in case exception itself is constructed incorrectly)
@@ -34,11 +35,11 @@ class _FilesystemBaseError(IOError):
 	"""
 	def __init__(
 		self,
-		err_num,  # type: _t.Union[int, IOError]
+		err_num,  # type: _t.Union[int, OSError]
 		filename=None,  # type: _path_h_o
 		err_str=None  # type: _str_h_o
 	):
-		if isinstance(err_num, IOError):
+		if isinstance(err_num, OSError):
 			filename = err_num.filename if (filename is None) else filename
 			err_str = err_num.strerror if (err_str is None) else err_str
 			err_num = err_num.errno
@@ -104,7 +105,7 @@ class NotExist(_FilesystemBaseError):
 		filename=None,  # type: _t.Union[None, str, _uni]
 		err_str=None  # type: _t.Union[None, str, _uni]
 	):
-		super(NotExist, self).__init__(errno.ENOENT, filename, err_str)
+		super(NotExist, self).__init__(_errno.ENOENT, filename, err_str)
 
 
 class EmptyPath(NotExist):
@@ -131,7 +132,7 @@ class NotDir(_FilesystemBaseError):
 		filename=None,  # type: _t.Union[None, str, _uni]
 		err_str=None  # type: _t.Union[None, str, _uni]
 	):
-		super(NotDir, self).__init__(errno.ENOTDIR, filename, err_str)
+		super(NotDir, self).__init__(_errno.ENOTDIR, filename, err_str)
 
 
 class NotFile(_FilesystemBaseError):
@@ -146,7 +147,7 @@ class NotFile(_FilesystemBaseError):
 		err_str = _FilesystemBaseError._check_str_arg(err_str)
 		if not err_str:
 			err_str = 'Not a file'
-		super(NotFile, self).__init__(errno.EISDIR, filename, err_str)
+		super(NotFile, self).__init__(_errno.EISDIR, filename, err_str)
 
 
 class NotReadable(_FilesystemBaseError):
@@ -161,7 +162,7 @@ class NotReadable(_FilesystemBaseError):
 		err_str = _FilesystemBaseError._check_str_arg(err_str)
 		if not err_str:
 			err_str = 'File/folder is not readable'
-		super(NotReadable, self).__init__(errno.EACCES, filename, err_str)
+		super(NotReadable, self).__init__(_errno.EACCES, filename, err_str)
 
 
 class NotWriteable(_FilesystemBaseError):
@@ -176,7 +177,7 @@ class NotWriteable(_FilesystemBaseError):
 		err_str = _FilesystemBaseError._check_str_arg(err_str)
 		if not err_str:
 			err_str = 'File/folder is not writeable'
-		super(NotWriteable, self).__init__(errno.EACCES, filename, err_str)
+		super(NotWriteable, self).__init__(_errno.EACCES, filename, err_str)
 
 
 class UnknownObject(_FilesystemBaseError):
@@ -191,7 +192,7 @@ class UnknownObject(_FilesystemBaseError):
 		err_str = _FilesystemBaseError._check_str_arg(err_str)
 		if not err_str:
 			err_str = 'Path is neither a file nor a folder'
-		super(UnknownObject, self).__init__(errno.ENOSYS, filename, err_str)
+		super(UnknownObject, self).__init__(_errno.ENOSYS, filename, err_str)
 
 
 class PathAlreadyExist(_FilesystemBaseError):
@@ -219,7 +220,7 @@ class PathAlreadyExist(_FilesystemBaseError):
 			err_str = 'Path already exists'
 		if not (overwrite is None):
 			err_str += ' (overwrite=<{0}>)'.format(overwrite)
-		super(PathAlreadyExist, self).__init__(errno.EEXIST, filename, err_str)
+		super(PathAlreadyExist, self).__init__(_errno.EEXIST, filename, err_str)
 		self.overwrite = overwrite
 
 
