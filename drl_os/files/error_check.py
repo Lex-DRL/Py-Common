@@ -5,6 +5,7 @@ from drl_py23 import (
 	str_h as _str_h,
 )
 from . import errors as _err
+from .__convert_path import to_unix_path as _to_unix
 import os as _os
 from os import path as _pth
 
@@ -13,8 +14,7 @@ def path_exists(
 	path,  # type: _str_h
 	not_link=False,
 ):
-	from . import to_unix_path
-	path = to_unix_path(path)
+	path = _to_unix(path)
 	if not _pth.exists(path):
 		raise _err.NotExist(path)
 	if not_link and _pth.islink(path):

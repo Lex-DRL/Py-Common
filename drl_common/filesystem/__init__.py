@@ -26,6 +26,7 @@ from drl_py23 import (
 	t_strict_unicode as _unicode,
 )
 from drl_py23.enum import EnumDefault as __EnumDefault
+from drl_os.files import to_unix_path
 
 _is_maya = _im.is_maya()
 if _is_maya:
@@ -199,76 +200,6 @@ class FileFilter(object):
 
 	def __str__(self):
 		return self.as_string()
-
-
-def __convert_path_slashes(
-	path, wrong_slash='\\', right_slash='/', trailing_slash=None, leading_slash=0
-):
-	err.NotStringError(path, 'path').raise_if_needed()
-	if not path:
-		return ''
-
-	assert isinstance(path, _str_t)
-	path = path.replace(wrong_slash, right_slash)
-	if not (trailing_slash is None):
-		path = path.rstrip(right_slash)
-		if trailing_slash:
-			path += right_slash
-	if not (leading_slash is None):
-		path = path.lstrip(right_slash)
-		if leading_slash:
-			path = right_slash + path
-	return path
-
-
-def to_windows_path(
-	path,  # type: _str_h
-	trailing_slash=None,  # type: _t.Optional[bool]
-	leading_slash=False  # type: _t.Optional[bool]
-):
-	"""
-	Ensures given path has Windows-style slashes. ("/" -> "\")
-
-	:param path: The path.
-	:param trailing_slash:
-		Whether we need to ensure path has or lacks trailing slash:
-			*
-				``None``: (default) no check performed.
-				Leave as is, just replace path slashes.
-			* ``False``: Force-remove trailing slash
-			* ``True``: Force-leave (single) trailing slash.
-	:param leading_slash:
-		The same for leading slash.
-		However, it's `False` (force-removed) by default.
-	"""
-	return __convert_path_slashes(path, '/', '\\', trailing_slash, leading_slash)
-
-
-def to_unix_path(
-	path,  # type: _str_h
-	trailing_slash=None,  # type: _t.Optional[bool]
-	leading_slash=False  # type: _t.Optional[bool]
-):
-	"""
-	Ensures given path has unix-style slashes. ("\" -> "/")
-
-	:param path: The path.
-	:param trailing_slash:
-		Whether we need to ensure path has or lacks trailing slash:
-			*
-				``None``: (default) no check performed.
-				Leave as is, just replace path slashes.
-			* ``False``: Force-remove trailing slash
-			* ``True``: Force-leave (single) trailing slash.
-	:param leading_slash:
-		The same for leading slash.
-		However, it's `False` (force-removed) by default.
-	"""
-	return __convert_path_slashes(
-		path,
-		trailing_slash=trailing_slash,
-		leading_slash=leading_slash
-	)
 
 
 def __is_overwrite_enabled(

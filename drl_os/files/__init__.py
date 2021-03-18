@@ -6,13 +6,17 @@ __all__ = (
 	# packages:
 
 	# modules:
+	'error_check',
+	'errors',
 	'file_time',
 
 	# classes:
 
 	# functions:
+	'to_windows_path', 'to_unix_path',  # from __convert_path
 
 	# objects:
+	'slash', 'slash_win',  # from __convert_path
 )
 
 try:
@@ -21,3 +25,5 @@ try:
 	import typing as _t
 except ImportError:
 	pass
+
+from .__convert_path import *
