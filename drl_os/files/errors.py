@@ -21,6 +21,19 @@ import errno as _errno
 from os import strerror as _err_str
 
 
+def default_oserror(errno, message=None, path=None):
+	"""
+	Creates an `OSError` with the default message for the given errno.
+	The first optional argument is the error's path.
+	"""
+	if not message:
+		if errno in _errno.errorcode:
+			message = _os.strerror(errno)
+		else:
+			message = ''
+	return OSError(errno, message, path)
+
+
 class _FilesystemBaseError(OSError):
 	"""
 	Base class for filesystem-related errors, a simple wrapper for the `IOError`.
