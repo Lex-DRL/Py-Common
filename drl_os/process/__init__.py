@@ -54,8 +54,8 @@ from subprocess import (
 	Popen as _Popen,
 )
 
-from . import platform as _pf
-from .env import add_multi as _add_envs
+from drl_os import platform as _pf
+from drl_os.env import add_multi as _add_envs
 from drl_common import errors as _err
 
 
