@@ -3,11 +3,13 @@
 
 __author__ = 'Lex Darlog (DRL)'
 
-from drl_common import filesystem as fs
 from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
 )
+
+from drl_common import filesystem as fs
+from drl_os.files import error_check as _fl_error_check
 
 
 class Check(object):
@@ -31,7 +33,7 @@ class Check(object):
 	def __set_filepath(self, filepath):
 		if not isinstance(filepath, _str_t):
 			raise Exception("String expected as <filepath>. Got: " + repr(filepath))
-		fs.error_check.file_readable(filepath)
+		_fl_error_check.file_readable(filepath)
 		self.__filepath = filepath
 
 	@property
