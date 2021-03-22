@@ -4,13 +4,6 @@ to use monstrous packages like `numpy` just for them.
 """
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	# submodules:
-	'vector_tuples',
-
-	# classes:
-	'GeometricProgression'
-)
 
 try:
 	# support type hints in Python 3:

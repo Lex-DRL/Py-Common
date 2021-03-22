@@ -3,18 +3,6 @@ Functions to perform pretty-formatted (indented) json both in py2 and py3.
 """
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	# packages:
-
-	# modules:
-
-	# classes:
-
-	# functions:
-	'loads', 'prettify_obj', 'prettify_str', 'prettify_file',
-
-	# objects:
-)
 
 # region the regular Type-Hints stuff
 
@@ -39,7 +27,10 @@ from drl_py23 import (
 
 import re
 import json
-from collections import OrderedDict, namedtuple
+from collections import (
+	OrderedDict as _OrderedDict,
+	namedtuple as _namedtuple,
+)
 
 
 def __detect_str_indent_support():
@@ -59,7 +50,7 @@ try:
 		]
 	)
 except:
-	__IndentReplacement = namedtuple('_IndentReplacement', ['replace', 'indent', 'str_indent'])
+	__IndentReplacement = _namedtuple('_IndentReplacement', ['replace', 'indent', 'str_indent'])
 
 
 def __is_indent_replacement_needed(
@@ -170,7 +161,7 @@ def __load_args(
 		load_args = dict()
 	# keep items order in dict objects by default:
 	if 'object_pairs_hook' not in load_args:
-		load_args['object_pairs_hook'] = OrderedDict
+		load_args['object_pairs_hook'] = _OrderedDict
 	return load_args
 
 

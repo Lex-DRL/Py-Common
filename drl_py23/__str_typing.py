@@ -1,11 +1,6 @@
 """Python-version-independent type hints for various string types."""
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	't_strict_str', 't_strict_unicode',
-	'str_t', 'str_h', 'str_h_o', 'str_hint',
-	'path_t', 'path_h', 'path_h_o',
-)
 
 try:
 	# support type hints in Python 3:

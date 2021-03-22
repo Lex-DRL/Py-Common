@@ -4,9 +4,6 @@ wrappers of some sort.
 """
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	'DefaultTuple', 'DefaultList', 'Container', 'Dummy'
-)
 
 try:
 	# support type hints in Python 3:

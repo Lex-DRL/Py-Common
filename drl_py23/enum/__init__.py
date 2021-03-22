@@ -3,7 +3,7 @@
 __author__ = 'Lex Darlog (DRL)'
 
 # based on v1.1.6:
-__all__ = ('Enum', 'IntEnum', 'unique', 'EnumDefault', 'override_default')
+__all__ = ['Enum', 'IntEnum', 'unique', 'EnumDefault', 'override_default']
 
 try:
 	# support type hints in Python 3:
