@@ -32,4 +32,17 @@ def __test_if_maya():
 	return True
 
 
+def __test_if_hou():
+	try:
+		from hou import node
+	except ImportError:
+		return False
+
+	if not callable(node):
+		return False
+
+	return True
+
+
 is_maya = __test_if_maya()
+is_hou = __test_if_hou()
