@@ -12,6 +12,11 @@ try:
 except ImportError:
 	pass
 
+try:
+	from drl_interpreter import is_maya as _is_maya
+except:
+	_is_maya = False
+
 from ..__str_typing import (
 	str_t as _str_t,
 	str_h as _str_h,
@@ -50,6 +55,8 @@ def __pip_inst(
 	main_f(pip_args)
 
 
+__import_err_msg = ''
+
 try:
 	try:
 		import enum as _enum_module
@@ -81,7 +88,7 @@ except BaseException as e:
 		import enum as _enum_module
 		from enum import *
 
-		print (
+		__import_err_msg = (
 			'Unable to import a built-in <enum> module or download it '
 			'from the internet due to the error: {}\n'
 			'Installing a locally cached version: {}.'.format(e, __enum_path)
@@ -89,11 +96,15 @@ except BaseException as e:
 	except BaseException as e2:
 		from . import __local_fallback as _enum_module
 		from .__local_fallback import *
-		print (
+		__import_err_msg = (
 			'Unable to import a built-in <enum> module '
-			'or install it from a local cache due to the errors: {}\n{}\n'
+			'or install it from a local cache due to the errors:\n{}\n{}\n'
 			'Using locally stored copy instead.'.format(e, e2)
 		)
+
+if not _is_maya:
+	print(__import_err_msg)
+del(__import_err_msg)
 
 
 @unique

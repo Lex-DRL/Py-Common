@@ -1,8 +1,4 @@
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	'file_dt_utc',
-	'file_dt_local_tz',
-)
 
 from drl_common.py_2_3 import (
 	path_h as _path_h,
@@ -13,8 +9,11 @@ import time as _time
 from datetime import datetime as _dt
 from os import path as _path
 
-from pytz import utc as _utc  # $ pip install pytz
-from tzlocal import get_localzone as _get_localzone  # $ pip install tzlocal
+try:
+	from pytz import utc as _utc  # $ pip install pytz
+	from tzlocal import get_localzone as _get_localzone  # $ pip install tzlocal
+except ImportError:
+	pass
 
 
 def file_dt_utc(

@@ -17,9 +17,9 @@ from modules import pip_install as _inst
 
 from drl_common import (
 	errors as err,
-	is_maya as _im,
 	utils,
 )
+from drl_interpreter import is_maya as _is_maya
 from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
@@ -28,7 +28,6 @@ from drl_py23 import (
 from drl_py23.enum import EnumDefault as __EnumDefault
 from drl_os.files import to_unix_path
 
-_is_maya = _im.is_maya()
 if _is_maya:
 	from maya import cmds
 
