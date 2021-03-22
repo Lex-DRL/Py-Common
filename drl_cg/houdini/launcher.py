@@ -25,7 +25,7 @@ from subprocess import (
 	call as _call,
 	Popen as _Popen,
 )
-from drl_os.process import add_envs as _add_envs
+from drl_os.env import add_multi as _add_envs
 
 # noinspection PyBroadException
 try:
