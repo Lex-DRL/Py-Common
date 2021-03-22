@@ -1,17 +1,4 @@
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	# packages:
-
-	# modules:
-
-	# classes:
-
-	# functions:
-	'to_windows_path', 'to_unix_path',
-
-	# objects:
-	'slash', 'slash_win',
-)
 
 try:
 	# support type hints in Python 3:

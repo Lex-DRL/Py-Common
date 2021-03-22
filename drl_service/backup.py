@@ -18,8 +18,6 @@ from drl_py23.enum import EnumDefault as __EnumDefault
 from os import path as _path
 import errno as _errno
 
-from drl_os import process as _prc
-
 _errno_all = frozenset(_errno.errorcode.values())
 
 

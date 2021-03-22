@@ -13,6 +13,10 @@ except ImportError:
 	pass
 
 from drl_os.files import *
+from drl_os.files import (
+	errors as _fl_errors,
+	error_check as _fl_error_check
+)
 from modules import pip_install as _inst
 
 from drl_common import (
@@ -295,7 +299,7 @@ def ensure_breadcrumbs_are_folders(
 	breadcrumbs = breadcrumbs[:-1]
 	checked += breadcrumbs.pop(0)
 	if checked.endswith(':') and not os.path.exists(checked):
-		raise errors.NotExist(checked, "No such disk found in system")
+		raise _fl_errors.NotExist(checked, "No such disk found in system")
 
 	# we're sure at least the disk exists
 
@@ -315,14 +319,14 @@ def ensure_breadcrumbs_are_folders(
 		if os.path.isdir(item):
 			return
 		if not os.path.isfile(item):
-			raise errors.UnknownObject(item)
+			raise _fl_errors.UnknownObject(item)
 		# we're facing a file (not a dir):
 
 		if __is_overwrite_enabled(overwrite, item):
 			os.remove(item)
 			os.makedirs(item)
 			return
-		raise errors.ParentFolderIsFile(path, item, overwrite)
+		raise _fl_errors.ParentFolderIsFile(path, item, overwrite)
 
 	__check_item(checked)  # we already have the beginning to check
 	while breadcrumbs:
@@ -371,14 +375,14 @@ def clean_path_for_folder(
 		return path
 
 	if not os.path.isfile(path):
-		raise errors.UnknownObject(path)
+		raise _fl_errors.UnknownObject(path)
 
 	if __is_overwrite_enabled(overwrite, path):
 		os.remove(path)
 		os.makedirs(path)
 		return path
 
-	raise errors.FileAlreadyExist(path, overwrite)
+	raise _fl_errors.FileAlreadyExist(path, overwrite)
 
 
 def clean_path_for_file(
@@ -451,9 +455,9 @@ def clean_path_for_file(
 		if overwritten:
 			sh.rmtree(path)
 			return path, overwritten, user_cancelled
-		raise errors.FileAlreadyExist(path, overwrite_folders, 'Folder already exist at the file path')
+		raise _fl_errors.FileAlreadyExist(path, overwrite_folders, 'Folder already exist at the file path')
 
-	raise errors.UnknownObject(path)
+	raise _fl_errors.UnknownObject(path)
 
 # ---------------------------------------------------------
 
@@ -536,13 +540,13 @@ def detect_file_encoding(
 
 	# first, try to detect BOM.
 	# an extension of: https://stackoverflow.com/questions/13590749/reading-unicode-file-data-with-bom-chars-in-python
-	file_path = error_check.file_readable(file_path)
+	file_path = _fl_error_check.file_readable(file_path)
 	try:
 		first_bytes = min(32, _pth.getsize(file_path))  # int for now
 		with open(file_path, 'rb') as fl_first:
 			first_bytes = fl_first.read(first_bytes)  # str now
 	except IOError:
-		raise errors.NotReadable(file_path)
+		raise _fl_errors.NotReadable(file_path)
 	for bom, enc in (
 		(codecs.BOM_UTF32_BE, 'utf-32-be'),
 		(codecs.BOM_UTF32_LE, 'utf-32-le'),
@@ -568,7 +572,7 @@ def detect_file_encoding(
 		with open(file_path, 'rb') as fl:
 			raw = fl.read() if limit is None else fl.read(limit)
 	except IOError:
-			raise errors.NotReadable(file_path)
+			raise _fl_errors.NotReadable(file_path)
 
 	def _mode_no_modules(bytes_string):
 		"""
@@ -725,7 +729,7 @@ def read_file_lines(
 		performed first**
 		(your function already gets a string with no trailing newline-char).
 	"""
-	error_check.file_readable(file_path)
+	_fl_error_check.file_readable(file_path)
 
 	def _rstrip_with_processing(
 		line_str  # type: _str_h
@@ -752,7 +756,7 @@ def read_file_lines(
 				else:
 					lines = [f(l) for l in fl]  # type: _t.List[_unicode]
 		except IOError:
-			raise errors.NotReadable(file_path)
+			raise _fl_errors.NotReadable(file_path)
 	else:
 		# no encoding is provided
 		try:
@@ -762,7 +766,7 @@ def read_file_lines(
 				else:
 					lines = [f(l) for l in fl]  # type: _t.List[str]
 		except IOError:
-			raise errors.NotReadable(file_path)
+			raise _fl_errors.NotReadable(file_path)
 
 	return lines
 
@@ -829,7 +833,7 @@ def write_file_lines(
 	newline='\n',  # type: _t.Optional[str]
 	newline_included=False
 ):
-	file_path = error_check.file_writeable(file_path)
+	file_path = _fl_error_check.file_writeable(file_path)
 
 	def open_io():
 		return io.open(file_path, 'wt', encoding=encoding, newline=newline)
@@ -849,7 +853,7 @@ def write_file_lines(
 					lines = (l + '\n' for l in lines)
 				fl.writelines(lines)
 	except IOError:
-		raise errors.NotWriteable(file_path)
+		raise _fl_errors.NotWriteable(file_path)
 
 
 def dir_tree_gen(
