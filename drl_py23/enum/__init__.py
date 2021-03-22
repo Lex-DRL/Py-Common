@@ -143,7 +143,13 @@ class EnumDefault(IntEnum):
 		# print (kwargs)
 		# print ('\n')
 
-		super(EnumDefault, self).__init__(*args, **kwargs)
+		try:
+			super(EnumDefault, self).__init__(*args, **kwargs)
+		except:
+			# we might need to intentionally skip base class' constructor,
+			# since it causes errors in py3
+			pass
+
 		if not self.__is_init():
 			self.__cls_init()
 		cur_default = self.__get_default()
