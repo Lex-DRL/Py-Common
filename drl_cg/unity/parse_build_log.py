@@ -11,7 +11,8 @@ from drl_common import (
 	drl_csv,
 	filesystem as fs,
 )
-from drl_common.py_2_3 import (
+from drl_os.files import error_check as _fl_error_check
+from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
 )
@@ -101,7 +102,7 @@ class DataItem(object):
 
 def get_data(f):
 	# f = 'e:\\1-Projects\\2-Arena\\UnityProject\\UnityProject--2016Apr27-204708.xml'
-	fs.error_check.file_readable(f)
+	_fl_error_check.file_readable(f)
 	root = ElementTree.parse(f)
 	used_assets = root.getroot().find('UsedAssets/All')
 	res = []

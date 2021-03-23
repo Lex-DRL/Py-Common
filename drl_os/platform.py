@@ -2,7 +2,6 @@
 The module detecting which OS type we're running on.
 """
 __author__ = 'Lex Darlog (DRL)'
-__all__ = ('IS_WINDOWS', 'IS_LINUX', 'IS_FREEBSD', 'IS_MACOS', 'IS_UNIX')
 
 from sys import platform as __pf
 __pf_low = __pf.lower()

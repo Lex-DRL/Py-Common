@@ -1,5 +1,6 @@
 """
-Tools related to RedShift.
 """
 
 __author__ = 'Lex Darlog (DRL)'
+
+from .__convert_path import *

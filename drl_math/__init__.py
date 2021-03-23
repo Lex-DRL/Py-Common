@@ -4,13 +4,6 @@ to use monstrous packages like `numpy` just for them.
 """
 
 __author__ = 'Lex Darlog (DRL)'
-__all__ = (
-	# submodules:
-	'vector_tuples',
-
-	# classes:
-	'GeometricProgression'
-)
 
 try:
 	# support type hints in Python 3:
@@ -21,7 +14,7 @@ except ImportError:
 	pass
 
 from drl_common.cols import Dummy as _Dummy
-from drl_common.py_2_3 import (
+from drl_py23 import (
 	xrange as _xrange,
 )
 

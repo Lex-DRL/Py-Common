@@ -13,7 +13,7 @@ try:
 except ImportError:
 	pass
 
-from drl_common.py_2_3 import (
+from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
 )
@@ -25,7 +25,7 @@ from subprocess import (
 	call as _call,
 	Popen as _Popen,
 )
-from drl_os.process import add_envs as _add_envs
+from drl_os.env import add_multi as _add_envs
 
 # noinspection PyBroadException
 try:

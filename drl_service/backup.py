@@ -9,16 +9,14 @@ try:
 	import typing as _t
 except ImportError:
 	pass
-from drl_common.py_2_3 import (
+from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
 )
-from drl_common.py_2_3.enum import EnumDefault as __EnumDefault
+from drl_py23.enum import EnumDefault as __EnumDefault
 
 from os import path as _path
 import errno as _errno
-
-from drl_os import process as _prc
 
 _errno_all = frozenset(_errno.errorcode.values())
 

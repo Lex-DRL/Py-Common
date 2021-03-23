@@ -3,7 +3,7 @@
 __author__ = 'Lex Darlog (DRL)'
 
 # based on v1.1.6:
-__all__ = ('Enum', 'IntEnum', 'unique', 'EnumDefault', 'override_default')
+__all__ = ['Enum', 'IntEnum', 'unique', 'EnumDefault', 'override_default']
 
 try:
 	# support type hints in Python 3:
@@ -11,6 +11,11 @@ try:
 	import typing as _t
 except ImportError:
 	pass
+
+try:
+	from drl_interpreter import is_maya as _is_maya
+except:
+	_is_maya = False
 
 from ..__str_typing import (
 	str_t as _str_t,
@@ -50,6 +55,8 @@ def __pip_inst(
 	main_f(pip_args)
 
 
+__import_err_msg = ''
+
 try:
 	try:
 		import enum as _enum_module
@@ -81,7 +88,7 @@ except BaseException as e:
 		import enum as _enum_module
 		from enum import *
 
-		print (
+		__import_err_msg = (
 			'Unable to import a built-in <enum> module or download it '
 			'from the internet due to the error: {}\n'
 			'Installing a locally cached version: {}.'.format(e, __enum_path)
@@ -89,11 +96,15 @@ except BaseException as e:
 	except BaseException as e2:
 		from . import __local_fallback as _enum_module
 		from .__local_fallback import *
-		print (
+		__import_err_msg = (
 			'Unable to import a built-in <enum> module '
-			'or install it from a local cache due to the errors: {}\n{}\n'
+			'or install it from a local cache due to the errors:\n{}\n{}\n'
 			'Using locally stored copy instead.'.format(e, e2)
 		)
+
+if not _is_maya:
+	print(__import_err_msg)
+del(__import_err_msg)
 
 
 @unique
@@ -132,7 +143,13 @@ class EnumDefault(IntEnum):
 		# print (kwargs)
 		# print ('\n')
 
-		super(EnumDefault, self).__init__(*args, **kwargs)
+		try:
+			super(EnumDefault, self).__init__(*args, **kwargs)
+		except:
+			# we might need to intentionally skip base class' constructor,
+			# since it causes errors in py3
+			pass
+
 		if not self.__is_init():
 			self.__cls_init()
 		cur_default = self.__get_default()

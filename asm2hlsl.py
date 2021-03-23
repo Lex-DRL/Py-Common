@@ -6,7 +6,7 @@ try:
 except ImportError:
 	pass
 
-from drl_common.py_2_3.enum import Enum
+from drl_py23.enum import Enum
 
 from pprint import pprint as pp
 import os as _os
@@ -14,7 +14,7 @@ import string as _str
 import re as _re
 from collections import namedtuple as _namedtuple
 
-from drl_common.py_2_3 import (
+from drl_py23 import (
 	str_t as _str_t,
 	str_h as _str_h,
 	t_strict_unicode as _unicode,

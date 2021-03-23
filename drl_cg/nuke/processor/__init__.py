@@ -3,14 +3,16 @@
 
 __author__ = 'Lex Darlog (DRL)'
 
+from drl_py23 import (
+	str_t as _str_t,
+	str_h as _str_h,
+)
+
 from drl_common import (
 	errors as _err_comm,
 	filesystem as _fs,
 )
-from drl_common.py_2_3 import (
-	str_t as _str_t,
-	str_h as _str_h,
-)
+from drl_os.files import error_check as _fl_error_check
 
 from . import errors
 
@@ -98,7 +100,7 @@ class NukeProcessor(object):
 			item = _err_comm.NotStringError(
 				item, 'source texture'
 			).raise_if_needed_or_empty().replace('\\', '/')
-			return _fs.error_check.file_readable(item)
+			return _fl_error_check.file_readable(item)
 
 		self._src_tex = tuple(
 			(check_single_item(it) for it in src_tex)
