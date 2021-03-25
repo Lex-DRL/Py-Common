@@ -154,6 +154,24 @@ def prettify_obj(
 	return joiner.join(res_lines)
 
 
+# TODO: fix: 1) remove trailing commas, 2) '-strings -> "-strings
+# _map_blocks = {
+# 	'(': ')',
+# 	'{': '}',
+# 	'[': ']',
+# }
+# _map_str = {
+# 	'"': r'\"',
+# 	"'": r"\'",
+# }
+#
+#
+# def __fix_trailing_commas_g(
+# 	json_string,  # type: _str_h
+# ):
+# 	pass
+
+
 def __load_args(
 	load_args=None,  # type: _t.Optional[_t.Dict[str, _t.Any]]
 ):
