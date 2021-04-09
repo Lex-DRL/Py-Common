@@ -36,7 +36,7 @@ def start(
 ):
 	"""
 	The function starting a process with (optionally):
-		* some command-line arguments
+		* some command-line arguments (`executable` as str sequence)
 		* setting environment variables (see `drl_os.env.add_multi()` function).
 	"""
 	_add_envs(append_env_in_front, *env_args, **env_kwargs)
