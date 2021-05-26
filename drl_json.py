@@ -127,7 +127,7 @@ def __is_indent_replacement_needed(
 __re_indent = re.compile('^ +')
 
 
-def prettify_obj(
+def dumps(
 	data_obj,
 	indent=2,  # type: _t.Union[_str_h_o, int]
 	tab=True,
@@ -152,6 +152,10 @@ def prettify_obj(
 
 	joiner = u'\n' if isinstance(res, _unicode) else '\n'
 	return joiner.join(res_lines)
+
+
+# legacy name:
+prettify_obj = dumps
 
 
 # TODO: fix: 1) remove trailing commas, 2) '-strings -> "-strings
@@ -207,6 +211,25 @@ def load(
 	return data_obj
 
 
+def dump(
+	data_obj,
+	fp,
+	indent=2,  # type: _t.Union[_str_h_o, int]
+	tab=True,
+	**dump_args
+):
+	"""
+	A wrapper on top of default `json.load()`, which also
+	prettifies the generated json string.
+	"""
+	json_string = dumps(
+		data_obj, indent=indent, tab=tab, **dump_args
+	)
+	with open(fp, 'wb') as f:
+		res = f.write(json_string)
+	return res
+
+
 def prettify_str(
 	json_string,  # type: _str_h
 	indent=2,  # type: _t.Union[_str_h_o, int]
@@ -218,7 +241,7 @@ def prettify_str(
 	data_obj = json.loads(json_string, **__load_args(load_args))
 	if data_callback is not None:
 		data_obj = data_callback(data_obj)
-	return prettify_obj(
+	return dumps(
 		data_obj, indent=indent, tab=tab, **dump_args
 	)
 
@@ -231,14 +254,12 @@ def prettify_file(
 	data_callback=None,  # type: _t.Optional[_t.Callable]
 	**dump_args
 ):
+	"""
+	A wrapper on top of all the prettified functions, which sequentially performs
+	read from the json file, calls an optional data callback and writes back
+	to the same file.
+	"""
 	data_obj = loads(file_path, **load_args)
 	if data_callback is not None:
 		data_obj = data_callback(data_obj)
-
-	json_string = prettify_obj(
-		data_obj, indent=indent, tab=tab, **dump_args
-	)
-
-	with open(file_path, 'wb') as f:
-		res = f.write(json_string)
-	return res
+	return dump(data_obj, file_path, indent=indent, tab=tab, **dump_args)
