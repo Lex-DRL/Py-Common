@@ -194,6 +194,19 @@ def loads(
 	return json.loads(json_string, **__load_args(load_args))
 
 
+def load(
+	file_path,  # type: _str_h
+	**load_args
+):
+	"""
+	A wrapper on top of default `json.load()`, which uses `OrderedDict`, unless
+	`object_pairs_hook` argument is passed explicitly, with another callable.
+	"""
+	with open(file_path, 'rb') as f:
+		data_obj = json.load(f, **__load_args(load_args))
+	return data_obj
+
+
 def prettify_str(
 	json_string,  # type: _str_h
 	indent=2,  # type: _t.Union[_str_h_o, int]
@@ -218,8 +231,7 @@ def prettify_file(
 	data_callback=None,  # type: _t.Optional[_t.Callable]
 	**dump_args
 ):
-	with open(file_path, 'rb') as f:
-		data_obj = json.load(f, **__load_args(load_args))
+	data_obj = loads(file_path, **load_args)
 	if data_callback is not None:
 		data_obj = data_callback(data_obj)
 
