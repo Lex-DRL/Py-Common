@@ -206,8 +206,13 @@ def load(
 	A wrapper on top of default `json.load()`, which uses `OrderedDict`, unless
 	`object_pairs_hook` argument is passed explicitly, with another callable.
 	"""
-	with open(file_path, 'rb') as f:
-		data_obj = json.load(f, **__load_args(load_args))
+	load_args = __load_args(load_args)
+	try:
+		with open(file_path, 'rb') as f:
+			data_obj = json.load(f, **load_args)
+	except:
+		with open(file_path, 'rt') as f:
+			data_obj = json.load(f, **load_args)
 	return data_obj
 
 
@@ -225,8 +230,12 @@ def dump(
 	json_string = dumps(
 		data_obj, indent=indent, tab=tab, **dump_args
 	)
-	with open(fp, 'wb') as f:
-		res = f.write(json_string)
+	try:
+		with open(fp, 'wb') as f:
+			res = f.write(json_string)
+	except:
+		with open(fp, 'wt') as f:
+			res = f.write(json_string)
 	return res
 
 
