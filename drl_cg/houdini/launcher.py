@@ -72,7 +72,7 @@ def with_envs(
 		)
 	)
 	for hou_env, val in hou_path_vars:
-		vals_list = filter(None, val.strip(sep).split(sep))
+		vals_list = list(filter(None, val.strip(sep).split(sep)))
 		if '&' in vals_list:
 			continue
 		vals_list.append('&')
