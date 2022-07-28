@@ -55,6 +55,16 @@ try:
 except:
 	str_h_o = str_h
 
+
+def to_str_or_unicode(val):
+	if isinstance(val, str_t):
+		return val
+	# noinspection PyBroadException
+	try:
+		return str(val)
+	except Exception:
+		return t_strict_unicode(val)
+
 # -----------------------------------------------------------------------------
 
 # noinspection PyBroadException,PyPep8
