@@ -611,7 +611,8 @@ def detect_file_encoding(
 					return None
 			else:
 				for ch in bytes_string:
-					if 0xD800 <= ord(ch) <= 0xDFFF:
+					ch_i = ch if isinstance(ch, int) else ord(ch)  # Py2: need ord()l Py3: bytes[i] is already an int
+					if 0xD800 <= ch_i <= 0xDFFF:
 						return None
 				return enc_utf
 
