@@ -17,7 +17,7 @@ from drl_os.files import (
 	errors as _fl_errors,
 	error_check as _fl_error_check
 )
-from modules import pip_install as _inst
+from drl_modules import pip_install as _inst
 
 from drl_common import (
 	errors as err,
